@@ -8,30 +8,32 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Order {
-  id          Int      @id @default(autoincrement())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  orderNumber String   @db.VarChar(255)
-  notes       String?
-  shipped     Boolean  @default(false)
-  customer    Customer @relation(fields: [customerId], references: [id])
-  customerId  Int
+enum OrderStatus {
+  PENDING
+  QUARANTINE
+  COMPLETED
+  CANCELLED
 }
 
-model ShippingDetails {
-  id         Int      @id @default(autoincrement())
-  address    String?
-  city       String?
-  zipCode    String?
-  customer   Customer @relation(fields: [customerId], references: [id])
-  customerId Int      @unique
+model Order {
+  id          String      @id @default(uuid())
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  deletedAt   DateTime?
+  //
+  orderNumber String      @db.VarChar(255)
+  status      OrderStatus
+  customer    Customer    @relation(fields: [customerId], references: [id])
+  customerId  String
 }
 
 model Customer {
-  id              Int              @id @default(autoincrement())
-  email           String           @unique
-  name            String?
-  orders          Order[]
-  shippingDetails ShippingDetails?
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  //
+  email     String    @unique
+  name      String?
+  orders    Order[]
 }
