@@ -12,10 +12,16 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "fastify": "^5.2.2"
+    "@fastify/postgres": "^6.0.2",
+    "@joggr/fastify-prisma": "^5.2.0",
+    "@prisma/client": "^6.5.0",
+    "fastify": "^5.2.2",
+    "pg": "^8.14.1"
   },
   "devDependencies": {
     "@types/node": "^22.13.14",
+    "prisma": "^6.5.0",
+    "tsx": "^4.19.3",
     "typescript": "^5.8.2"
   }
 }

@@ -1,9 +1,35 @@
 import fastify from 'fastify'
+import {Order, PrismaClient} from "./generated/prisma";
 
+const prisma = new PrismaClient()
 const server = fastify()
 
-server.get('/ping', async (request, reply) => {
-    return 'pong\n'
+server.get<{
+    Reply: Order[]
+}>('/orders', async (request, reply) => {
+    return prisma.order.findMany();
+})
+
+interface CreateOrderBody {
+    orderNumber: string
+    notes?: string
+    customerId: number
+}
+
+server.post<{
+    Body: CreateOrderBody
+    Reply: Order
+}>('/orders', async (request, reply) => {
+    const { orderNumber, notes, customerId } = request.body
+    return prisma.order.create({
+        data: {
+            orderNumber,
+            notes,
+            customer: {
+                connect: {id: customerId},
+            },
+        },
+    });
 })
 
 server.listen({ port: 8080 }, (err, address) => {
@@ -11,5 +37,5 @@ server.listen({ port: 8080 }, (err, address) => {
         console.error(err)
         process.exit(1)
     }
-    console.log(`Server listening at ${address}`)
+    console.log(`Server is listening to ${address}`)
 })
