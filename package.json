@@ -2,10 +2,10 @@
   "name": "codevision-backend",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "start": "node index.js"
+    "start": "node src/index.js"
   },
   "keywords": [],
   "author": "",
@@ -13,6 +13,8 @@
   "type": "commonjs",
   "dependencies": {
     "@fastify/postgres": "^6.0.2",
+    "@fastify/swagger": "^9.4.2",
+    "@fastify/swagger-ui": "^5.2.2",
     "@joggr/fastify-prisma": "^5.2.0",
     "@prisma/client": "^6.5.0",
     "fastify": "^5.2.2",
