@@ -20,8 +20,8 @@ model Order {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   deletedAt   DateTime?
-  //
   orderNumber String      @db.VarChar(255)
+  //
   status      OrderStatus
   customer    Customer    @relation(fields: [customerId], references: [id])
   customerId  String
@@ -33,7 +33,7 @@ model Customer {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
   //
-  email     String    @unique
+  email     String
   name      String?
   orders    Order[]
 }
