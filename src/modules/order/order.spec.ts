@@ -7,7 +7,6 @@ import { $Enums } from '../../../generated/prisma'
 import OrderStatus = $Enums.OrderStatus
 
 let app: ReturnType<typeof Fastify>
-let createdOrderId: string
 let createdCustomerId: string
 
 beforeEach(async () => {
