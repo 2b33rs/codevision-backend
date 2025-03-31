@@ -8,6 +8,7 @@ import OrderStatus = $Enums.OrderStatus
 
 let app: ReturnType<typeof Fastify>
 let createdCustomerId: string
+let createdOrderId: string
 
 beforeEach(async () => {
   app = Fastify()
