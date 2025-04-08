@@ -3,7 +3,7 @@ import cors from '@fastify/cors'
 import { registerPlugins } from './plugins/register-plugins'
 import { registerModules } from './modules/register-modules'
 
-export const app = Fastify({ ignoreTrailingSlash: true })
+export const app = Fastify({ ignoreTrailingSlash: true, logger: true })
 
 app.register(cors, {
   origin: 'http://localhost:5173',
