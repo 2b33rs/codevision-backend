@@ -11,7 +11,7 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 
 # Install production dependencies.
-RUN npm i --production
+RUN npm i --production --legacy-peer-deps
 
 # Copy local code to the container image.
 COPY . .
