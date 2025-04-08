@@ -12,3 +12,7 @@ app.register(cors, {
 
 registerPlugins(app)
 registerModules(app)
+
+app.get('/', () => {
+  return 'pong'
+})
