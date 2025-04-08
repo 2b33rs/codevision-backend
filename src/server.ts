@@ -7,7 +7,11 @@ export function createServer() {
   const app = Fastify({ ignoreTrailingSlash: true, logger: true })
 
   app.register(cors, {
-    origin: 'http://localhost:5173',
+    origin: [
+      'http://localhost:5173',
+      'https://codevision.up.railway.app',
+      'http://localhost:80',
+    ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   })
 
