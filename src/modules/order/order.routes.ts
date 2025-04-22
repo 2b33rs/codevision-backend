@@ -45,7 +45,7 @@ export default async function orderRoutes(fastify: FastifyInstance) {
     },
   )
 
-  // POST create fake order
+  // POST create or fake order
   fastify.post<{ Body: { customerId: string; OrderTemplate?: OrderTemplate } }>(
     '/create',
     {
@@ -65,7 +65,7 @@ export default async function orderRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const newOrder = await createOrder({
         customerId: request.body.customerId,
-        orderTemplate: request.body.OrderTemplate,
+        orderTemplate: request.body?.OrderTemplate,
       })
       reply.code(201).send(newOrder)
     },
