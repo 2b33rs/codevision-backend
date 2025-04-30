@@ -13,10 +13,11 @@ model Customer {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   deletedAt    DateTime?
-  email        String?       @unique
+  //
+  email        String?      @unique
   name         String?
   telefon      String?
-  addr_land    addr_Land?    @default(DE)
+  addr_land    addr_Land?   @default(DE)
   addr_ort     String?
   addr_plz     String?
   addr_strasse String?
@@ -24,7 +25,6 @@ model Customer {
   addr_zusatz  String?
   orders       Order[]
   cust_type    CustomerType
-  complaints   Complaint[]  // Add this field
 }
 
 model Order {
@@ -32,94 +32,82 @@ model Order {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   deletedAt   DateTime?
+  //
   orderNumber String
   customer    Customer   @relation(fields: [customerId], references: [id])
   customerId  String
   positions   Position[]
-  complaints  Complaint[]
 }
 
 model Position {
-  id          String    @id @unique @default(uuid())
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id          String          @id @unique @default(uuid())
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
   deletedAt   DateTime?
-  order       Order     @relation(fields: [orderId], references: [id])
+  // Fremdschlüssel
+  order       Order           @relation(fields: [orderId], references: [id])
   orderId     String
-  product     Product   @relation(fields: [productId], references: [id])
-  productId   String
-  amount      Int
-  description String?
-  pos_number  Int
-  Status      PosStatus @default(Offen)
   complaints  Complaint[]
-  logs        PositionLog[] // Add this field
-}
-
-model ProdCategory {
-  id       String    @id @unique @default(uuid())
-  name     String
-  Products Product[]
-}
-
-model Product {
-  id          String       @id @unique @default(uuid())
+  // Positionsfelder
+  pos_number  Int
+  description String?
+  Status      POSITION_STATUS @default(OPEN)
+  amount      Int
+  // pro T-Shirt
   name        String
   color       Json?
-  kindofshirt ShirtKind?
-  sizeofshirt ShirtSize?
-  Design      String?
-  ProdCat     ProdCategory @relation(fields: [prodCategoryId], references: [id])
-  prodCategoryId String
-positions   Position[]   
+  shirtSize   ShirtSize?
+  prodCat     ProductCategory
+  design      String
+}
+
+// fürs Frontend
+model StandardProduct {
+  id        String          @id @default(uuid())
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  deletedAt DateTime?
+  //
+  name      String
+  color     Json?
+  shirtSize ShirtSize?
+  ProdCat   ProductCategory
 }
 
 model Complaint {
-  id          String        @id @unique @default(uuid())
-  createdAt   DateTime      @default(now())
-  order_id    Order         @relation(fields: [orderId], references: [id])
-  orderId     String
-  position_id Position?     @relation(fields: [positionId], references: [id])
-  positionId  String?
-  customer_id Customer       @relation(fields: [customerId], references: [id])
-  customerId  String
-  Reason      String
-  CompKind    Complaintkind
+  id            String        @id @default(uuid())
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  deletedAt     DateTime?
+  // Fremdschlüssel
+  position_id   Position      @relation(fields: [positionId], references: [id])
+  positionId    String
+  //
+  Reason        String
+  ComplaintKind ComplaintKind
 }
 
-model PositionLog {
-  id          String       @id @unique @default(uuid())
-  timestamp   DateTime     @default(now())
-  position_id Position      @relation(fields: [positionId], references: [id])
-  positionId  String
-  from        PosStatus?
-  to          PosStatus
-  editedBy    PosLogSource
+enum POSITION_STATUS {
+  OPEN
+  FINISHED_MATERIAL_REQUESTED
+  PRODUCTION_NOTIFIED
+  IN_DYEING
+  IN_PRINTING
+  PRODUCTION_COMPLETED
+  FINISHED_MATERIAL_READY_FOR_PICKUP
+  READY_FOR_SHIPMENT
+  SHIPPED
+  COMPLETED
+  CANCELLED
 }
 
-enum PosStatus {
-  Offen
-  Fertigmaterial_angefragt
-  Produktion_benachrichtigt
-  in_Färberei
-  in_Druckerei
-  Produktion_fertiggestellt
-  Fertigmaterial_abholbereit
-  Bereit_zum_Versand
-  Versand_erfolgt
-  Abgeschlossen
-  Storniert
+enum ProductCategory {
+  T_SHIRT
 }
 
 enum CustomerType {
-  Webshop
-  Firmenkunde
-}
-
-enum ShirtKind {
-  Standard
-  V_Ausschnitt
-  Polo
+  WEBSHOP
+  FIRMENKUNDE
 }
 
 enum ShirtSize {
@@ -129,16 +117,16 @@ enum ShirtSize {
   XL
 }
 
-enum Complaintkind {
-  intern
-  extern
+enum ComplaintKind {
+  INTERN
+  EXTERN
 }
 
 enum PosLogSource {
   PROD
   MAWI
   VV
-  Webshop
+  WEBSHOP
 }
 
 enum addr_Land {
