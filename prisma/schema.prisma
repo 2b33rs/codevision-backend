@@ -33,7 +33,7 @@ model Order {
   updatedAt   DateTime   @updatedAt
   deletedAt   DateTime?
   //
-  orderNumber String
+  orderNumber String     @unique
   customer    Customer   @relation(fields: [customerId], references: [id])
   customerId  String
   positions   Position[]
