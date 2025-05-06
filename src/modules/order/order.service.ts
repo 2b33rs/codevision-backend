@@ -6,39 +6,34 @@ export async function createOrder(customerId: string) {
   const yearShort = now.getFullYear().toString().slice(2)
   const prefix = `${yearShort}_`
 
-  const lastOrder = await prisma.order.findFirst({
-    where: {
-      orderNumber: {
-        startsWith: prefix,
-      },
-    },
-    orderBy: {
-      orderNumber: 'desc',
-    },
-    select: {
-      orderNumber: true,
-    },
-  })
-
   let counter = 1
+  let createdOrder = null
 
-  if (lastOrder?.orderNumber) {
-    const lastNumberPart = parseInt(lastOrder.orderNumber.split('_')[1], 10)
-    counter = isNaN(lastNumberPart) ? 1 : lastNumberPart + 1
+  while (!createdOrder) {
+    const newOrderNumber = `${prefix}${counter}`
+
+    try {
+      createdOrder = await prisma.order.create({
+        data: {
+          id: randomUUID(),
+          orderNumber: newOrderNumber,
+          customer: {
+            connect: { id: customerId },
+          },
+          deletedAt: null,
+        },
+      })
+    } catch (error: any) {
+      // Prisma unique constraint violation: orderNumber schon vorhanden
+      if (error.code === 'P2002' && error.meta?.target?.includes('orderNumber')) {
+        counter++
+        continue
+      }
+      throw error // bei anderen Fehlern abbrechen
+    }
   }
 
-  const newOrderNumber = `${prefix}${counter}`
-
-  return prisma.order.create({
-    data: {
-      id: randomUUID(),
-      orderNumber: newOrderNumber,
-      customer: {
-        connect: { id: customerId },
-      },
-      deletedAt: null,
-    },
-  })
+  return createdOrder
 }
 
 export async function getOrderById(orderId: string) {

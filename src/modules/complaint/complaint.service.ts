@@ -33,3 +33,23 @@ export async function createComplaint(input: {
 
   return complaint
 }
+
+export async function getComplaintsByPosition(positionId: string) {
+  return prisma.complaint.findMany({ where: { positionId } })
+}
+
+export async function getComplaintsByOrder(orderId: string) {
+  return prisma.complaint.findMany({
+    where: { position: { orderId } },
+  })
+}
+
+export async function getComplaintsByCustomer(customerId: string) {
+  return prisma.complaint.findMany({
+    where: { position: { order: { customerId } } },
+  })
+}
+
+export async function getAllComplaints() {
+  return prisma.complaint.findMany()
+}

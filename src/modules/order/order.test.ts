@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { prisma } from '../../plugins/prisma'
 import {
   createOrder,
@@ -7,16 +7,15 @@ import {
   getOrdersByCustomer,
 } from './order.service'
 import { randomUUID } from 'crypto'
+import { setTimeout } from 'timers/promises'
 
 beforeEach(async () => {
-  await prisma.$executeRawUnsafe('BEGIN')
+  // Testdaten vorher bereinigen
+  await prisma.order.deleteMany()
+  await prisma.customer.deleteMany()
 })
 
-afterEach(async () => {
-  await prisma.$executeRawUnsafe('ROLLBACK')
-})
-
-describe('Order Service Unit Tests', () => {
+describe('Order Service Unit Tests (cleaned setup)', () => {
   it('should create a new order with incremented order number', async () => {
     const customer = await prisma.customer.create({
       data: {
@@ -65,12 +64,15 @@ describe('Order Service Unit Tests', () => {
     })
 
     await createOrder(customer.id)
+    await setTimeout(50) // Zeitverzögerung für saubere OrderNumber
     await createOrder(customer.id)
 
     const orders = await getOrdersByCustomer(customer.id)
     expect(Array.isArray(orders)).toBe(true)
     expect(orders.length).toBe(2)
-    expect(orders[0].customerId).toBe(customer.id)
+    orders.forEach(order => {
+      expect(order.customerId).toBe(customer.id)
+    })
   })
 
   it('should get all orders in system', async () => {
@@ -85,6 +87,7 @@ describe('Order Service Unit Tests', () => {
     })
 
     await createOrder(customer.id)
+    await setTimeout(50)
     await createOrder(customer.id)
 
     const orders = await getAllOrders()
