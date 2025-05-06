@@ -8,32 +8,127 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum OrderStatus {
-  PENDING
-  QUARANTINE
+model Customer {
+  id           String       @id @unique @default(uuid())
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  deletedAt    DateTime?
+  //
+  email        String?      @unique
+  name         String?
+  phone        String?
+  addr_country addr_Land?   @default(DE)
+  addr_city    String?
+  addr_zip     String?
+  addr_street  String?
+  addr_line1   String?
+  addr_line2   String?
+  orders       Order[]
+  customerType CustomerType
+}
+
+model Order {
+  id          String     @id @default(uuid())
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime?
+  //
+  orderNumber String     @unique
+  customer    Customer   @relation(fields: [customerId], references: [id])
+  customerId  String
+  positions   Position[]
+}
+
+model Position {
+  id           String          @id @unique @default(uuid())
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  deletedAt    DateTime?
+  // Fremdschlüssel
+  order        Order           @relation(fields: [orderId], references: [id])
+  orderId      String
+  complaints   Complaint[]
+  // Positionsfelder
+  pos_number   Int
+  description  String?
+  Status       POSITION_STATUS @default(OPEN)
+  amount       Int
+  // pro T-Shirt
+  name         String
+  color        Json?
+  shirtSize    ShirtSize?
+  prodCategory ProductCategory
+  design       String
+}
+
+// fürs Frontend
+model StandardProduct {
+  id        String          @id @default(uuid())
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  deletedAt DateTime?
+  //
+  name      String
+  color     Json?
+  shirtSize ShirtSize?
+  ProdCat   ProductCategory
+}
+
+model Complaint {
+  id            String        @id @default(uuid())
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  deletedAt     DateTime?
+  // Fremdschlüssel
+  position_id   Position      @relation(fields: [positionId], references: [id])
+  positionId    String
+  //
+  Reason        String
+  ComplaintKind ComplaintKind
+}
+
+enum POSITION_STATUS {
+  OPEN
+  FINISHED_MATERIAL_REQUESTED
+  PRODUCTION_NOTIFIED
+  IN_DYEING
+  IN_PRINTING
+  PRODUCTION_COMPLETED
+  FINISHED_MATERIAL_READY_FOR_PICKUP
+  READY_FOR_SHIPMENT
+  SHIPPED
   COMPLETED
   CANCELLED
 }
 
-model Order {
-  id          String      @id @default(uuid())
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  deletedAt   DateTime?
-  orderNumber String      @db.VarChar(255)
-  //
-  status      OrderStatus
-  customer    Customer    @relation(fields: [customerId], references: [id])
-  customerId  String
+enum ProductCategory {
+  T_SHIRT
 }
 
-model Customer {
-  id        String    @id @default(uuid())
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-  //
-  email     String
-  name      String?
-  orders    Order[]
+enum CustomerType {
+  WEBSHOP
+  BUSINESS
+}
+
+enum ShirtSize {
+  S
+  M
+  L
+  XL
+}
+
+enum ComplaintKind {
+  INTERN
+  EXTERN
+}
+
+enum PosLogSource {
+  PROD
+  MAWI
+  VV
+  WEBSHOP
+}
+
+enum addr_Land {
+  DE
 }
