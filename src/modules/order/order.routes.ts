@@ -1,9 +1,12 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { createOrder } from './order.service'
-import { prisma } from '../../plugins/prisma'
+import {
+  createOrder,
+  getOrderById,
+  getOrdersByCustomer,
+  getAllOrders,
+} from './order.service'
 
-// bestehendes POST bleibt
 const createOrderSchema = z.object({
   customerId: z.string().uuid(),
 })
@@ -36,9 +39,7 @@ export default async function orderRoutes(fastify: FastifyInstance) {
         const query = getOrderQuerySchema.parse(request.query)
 
         if (query.orderId) {
-          const order = await prisma.order.findUnique({
-            where: { id: query.orderId },
-          })
+          const order = await getOrderById(query.orderId)
           if (!order) {
             return reply.status(404).send({ message: 'Order not found' })
           }
@@ -46,14 +47,11 @@ export default async function orderRoutes(fastify: FastifyInstance) {
         }
 
         if (query.customerId) {
-          const orders = await prisma.order.findMany({
-            where: { customerId: query.customerId },
-          })
+          const orders = await getOrdersByCustomer(query.customerId)
           return reply.send(orders)
         }
 
-        // keine Parameter → alle Orders
-        const allOrders = await prisma.order.findMany()
+        const allOrders = await getAllOrders()
         return reply.send(allOrders)
       } catch (err) {
         if (err instanceof z.ZodError) {

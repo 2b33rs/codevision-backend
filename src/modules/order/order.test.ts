@@ -1,157 +1,94 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { prisma } from '../../plugins/prisma'
 import {
-    describe,
-    it,
-    expect,
-    beforeAll,
-    afterAll,
-    beforeEach,
-    afterEach,
-  } from 'vitest'
-  import Fastify from 'fastify'
-  import { registerPlugins } from '../../plugins/register-plugins'
-  import { registerModules } from '../register-modules'
-  import { prisma } from '../../plugins/prisma'
-  import { randomUUID } from 'crypto'
-  
-  let app: ReturnType<typeof Fastify>
-  
-  beforeAll(async () => {
-    app = Fastify()
-    await registerPlugins(app)
-    await registerModules(app)
-  })
-  
-  afterAll(async () => {
-    await app.close()
-  })
-  
-  beforeEach(async () => {
-    await prisma.$executeRawUnsafe('BEGIN')
-  })
-  
-  afterEach(async () => {
-    await prisma.$executeRawUnsafe('ROLLBACK')
-  })
-  
-  describe('Order Routes E2E', () => {
-    it('should create an order with formatted orderNumber', async () => {
-      const customer = await prisma.customer.create({
-        data: {
-          id: randomUUID(),
-          name: 'E2E Kunde',
-          email: `e2e-${Date.now()}@mail.com`,
-          phone: '0000',
-          customerType: 'WEBSHOP',
-        },
-      })
-  
-      const res = await app.inject({
-        method: 'POST',
-        url: '/order',
-        payload: {
-          customerId: customer.id,
-        },
-      })
-  
-      expect(res.statusCode).toBe(200)
-      const order = JSON.parse(res.body)
-      expect(order).toHaveProperty('id')
-      expect(order.customerId).toBe(customer.id)
-  
-      // Prüfe Format: z.B. "25_1"
-      expect(order.orderNumber).toMatch(/^\d{2}_\d+$/)
+  createOrder,
+  getAllOrders,
+  getOrderById,
+  getOrdersByCustomer,
+} from './order.service'
+import { randomUUID } from 'crypto'
+
+beforeEach(async () => {
+  await prisma.$executeRawUnsafe('BEGIN')
+})
+
+afterEach(async () => {
+  await prisma.$executeRawUnsafe('ROLLBACK')
+})
+
+describe('Order Service Unit Tests', () => {
+  it('should create a new order with incremented order number', async () => {
+    const customer = await prisma.customer.create({
+      data: {
+        id: randomUUID(),
+        name: 'Test Kunde',
+        email: `test-${Date.now()}@mail.com`,
+        phone: '00000',
+        customerType: 'WEBSHOP',
+      },
     })
-  
-    it('should list all order', async () => {
-      const customer = await prisma.customer.create({
-        data: {
-          id: randomUUID(),
-          name: 'Listen-Kunde',
-          email: `list-${Date.now()}@mail.com`,
-          phone: '123',
-          customerType: 'WEBSHOP',
-        },
-      })
-  
-      await prisma.order.create({
-        data: {
-          id: randomUUID(),
-          orderNumber: '25_999',
-          customerId: customer.id,
-          deletedAt: null,
-        },
-      })
-  
-      const res = await app.inject({
-        method: 'GET',
-        url: '/order',
-      })
-  
-      expect(res.statusCode).toBe(200)
-      const order = JSON.parse(res.body)
-      expect(Array.isArray(order)).toBe(true)
-      expect(order.length).toBeGreaterThan(0)
-    })
-  
-    it('should get order by customerId', async () => {
-      const customer = await prisma.customer.create({
-        data: {
-          id: randomUUID(),
-          name: 'Filter-Kunde',
-          email: `filter-${Date.now()}@mail.com`,
-          phone: '456',
-          customerType: 'WEBSHOP',
-        },
-      })
-  
-      await prisma.order.create({
-        data: {
-          id: randomUUID(),
-          orderNumber: '25_123',
-          customerId: customer.id,
-          deletedAt: null,
-        },
-      })
-  
-      const res = await app.inject({
-        method: 'GET',
-        url: `/order?customerId=${customer.id}`,
-      })
-  
-      expect(res.statusCode).toBe(200)
-      const order = JSON.parse(res.body)
-      expect(Array.isArray(order)).toBe(true)
-      expect(order[0].customerId).toBe(customer.id)
-    })
-  
-    it('should get order by orderId', async () => {
-      const customer = await prisma.customer.create({
-        data: {
-          id: randomUUID(),
-          name: 'Einzel-Kunde',
-          email: `single-${Date.now()}@mail.com`,
-          phone: '789',
-          customerType: 'BUSINESS',
-        },
-      })
-  
-      const order = await prisma.order.create({
-        data: {
-          id: randomUUID(),
-          orderNumber: '25_456',
-          customerId: customer.id,
-          deletedAt: null,
-        },
-      })
-  
-      const res = await app.inject({
-        method: 'GET',
-        url: `/order?orderId=${order.id}`,
-      })
-  
-      expect(res.statusCode).toBe(200)
-      const result = JSON.parse(res.body)
-      expect(result.id).toBe(order.id)
-    })
+
+    const newOrder = await createOrder(customer.id)
+
+    expect(newOrder).toHaveProperty('id')
+    expect(newOrder.customerId).toBe(customer.id)
+    expect(newOrder.orderNumber).toMatch(/^\d{2}_\d+$/) // z. B. "25_1"
   })
-  
+
+  it('should get order by id', async () => {
+    const customer = await prisma.customer.create({
+      data: {
+        id: randomUUID(),
+        name: 'ID Kunde',
+        email: `id-${Date.now()}@mail.com`,
+        phone: '12345',
+        customerType: 'BUSINESS',
+      },
+    })
+
+    const order = await createOrder(customer.id)
+    const found = await getOrderById(order.id)
+
+    expect(found).not.toBeNull()
+    expect(found?.id).toBe(order.id)
+  })
+
+  it('should get all orders for a customer', async () => {
+    const customer = await prisma.customer.create({
+      data: {
+        id: randomUUID(),
+        name: 'Many Orders',
+        email: `multi-${Date.now()}@mail.com`,
+        phone: '67890',
+        customerType: 'BUSINESS',
+      },
+    })
+
+    await createOrder(customer.id)
+    await createOrder(customer.id)
+
+    const orders = await getOrdersByCustomer(customer.id)
+    expect(Array.isArray(orders)).toBe(true)
+    expect(orders.length).toBe(2)
+    expect(orders[0].customerId).toBe(customer.id)
+  })
+
+  it('should get all orders in system', async () => {
+    const customer = await prisma.customer.create({
+      data: {
+        id: randomUUID(),
+        name: 'All Orders',
+        email: `all-${Date.now()}@mail.com`,
+        phone: '99999',
+        customerType: 'WEBSHOP',
+      },
+    })
+
+    await createOrder(customer.id)
+    await createOrder(customer.id)
+
+    const orders = await getAllOrders()
+    expect(Array.isArray(orders)).toBe(true)
+    expect(orders.length).toBeGreaterThanOrEqual(2)
+  })
+})

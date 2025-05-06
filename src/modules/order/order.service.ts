@@ -3,10 +3,9 @@ import { randomUUID } from 'crypto'
 
 export async function createOrder(customerId: string) {
   const now = new Date()
-  const yearShort = now.getFullYear().toString().slice(2) // z. B. "25"
-  const prefix = `${yearShort}_` // z. B. "25_"
+  const yearShort = now.getFullYear().toString().slice(2)
+  const prefix = `${yearShort}_`
 
-  // Finde die höchste Ordernummer mit diesem Jahres-Prefix
   const lastOrder = await prisma.order.findFirst({
     where: {
       orderNumber: {
@@ -28,7 +27,7 @@ export async function createOrder(customerId: string) {
     counter = isNaN(lastNumberPart) ? 1 : lastNumberPart + 1
   }
 
-  const newOrderNumber = `${prefix}${counter}` // z. B. "25_3"
+  const newOrderNumber = `${prefix}${counter}`
 
   return prisma.order.create({
     data: {
@@ -40,4 +39,20 @@ export async function createOrder(customerId: string) {
       deletedAt: null,
     },
   })
+}
+
+export async function getOrderById(orderId: string) {
+  return prisma.order.findUnique({
+    where: { id: orderId },
+  })
+}
+
+export async function getOrdersByCustomer(customerId: string) {
+  return prisma.order.findMany({
+    where: { customerId },
+  })
+}
+
+export async function getAllOrders() {
+  return prisma.order.findMany()
 }
