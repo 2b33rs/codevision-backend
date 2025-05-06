@@ -3,4 +3,5 @@ import positionRoutes from './position/position.routes'
 
 export async function registerModules(app: FastifyInstance) {
   app.register(positionRoutes, { prefix: '/position' })
+  // app.register(customerRoutes, { prefix: '/customer' })
 }

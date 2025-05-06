@@ -16,15 +16,15 @@ model Customer {
   //
   email        String?      @unique
   name         String?
-  telefon      String?
-  addr_land    addr_Land?   @default(DE)
-  addr_ort     String?
-  addr_plz     String?
-  addr_strasse String?
-  addr_hnr     String?
-  addr_zusatz  String?
+  phone        String?
+  addr_country addr_Land?   @default(DE)
+  addr_city    String?
+  addr_zip     String?
+  addr_street  String?
+  addr_line1   String?
+  addr_line2   String?
   orders       Order[]
-  cust_type    CustomerType
+  customerType CustomerType
 }
 
 model Order {
@@ -40,25 +40,25 @@ model Order {
 }
 
 model Position {
-  id          String          @id @unique @default(uuid())
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  deletedAt   DateTime?
+  id           String          @id @unique @default(uuid())
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  deletedAt    DateTime?
   // Fremdschlüssel
-  order       Order           @relation(fields: [orderId], references: [id])
-  orderId     String
-  complaints  Complaint[]
+  order        Order           @relation(fields: [orderId], references: [id])
+  orderId      String
+  complaints   Complaint[]
   // Positionsfelder
-  pos_number  Int
-  description String?
-  Status      POSITION_STATUS @default(OPEN)
-  amount      Int
+  pos_number   Int
+  description  String?
+  Status       POSITION_STATUS @default(OPEN)
+  amount       Int
   // pro T-Shirt
-  name        String
-  color       Json?
-  shirtSize   ShirtSize?
-  prodCat     ProductCategory
-  design      String
+  name         String
+  color        Json?
+  shirtSize    ShirtSize?
+  prodCategory ProductCategory
+  design       String
 }
 
 // fürs Frontend
@@ -107,7 +107,7 @@ enum ProductCategory {
 
 enum CustomerType {
   WEBSHOP
-  FIRMENKUNDE
+  BUSINESS
 }
 
 enum ShirtSize {
