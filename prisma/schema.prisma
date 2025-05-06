@@ -80,7 +80,7 @@ model Complaint {
   updatedAt     DateTime      @updatedAt
   deletedAt     DateTime?
   // Fremdschlüssel
-  position_id   Position      @relation(fields: [positionId], references: [id])
+  position   Position      @relation(fields: [positionId], references: [id])
   positionId    String
   //
   Reason        String
