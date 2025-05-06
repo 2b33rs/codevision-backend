@@ -81,7 +81,7 @@ model Complaint {
   updatedAt     DateTime      @updatedAt
   deletedAt     DateTime?
   // Fremdschlüssel
-  position_id   Position      @relation(fields: [positionId], references: [id])
+  position   Position      @relation(fields: [positionId], references: [id])
   positionId    String
   //
   Reason        String
@@ -100,6 +100,21 @@ enum POSITION_STATUS {
   SHIPPED
   COMPLETED
   CANCELLED
+}
+
+enum COMPLAINT_REASON {
+  WRONG_SIZE    
+  WRONG_COLOR
+  PRINT_INCORRECT   
+  PRINT_OFF_CENTER
+  DAMAGED_ITEM
+  STAINED
+  LATE_DELIVERY
+  WRONG_PRODUCT
+  MISSING_ITEM
+  BAD_QUALITY
+  NOT_AS_DESCRIBED
+  OTHER
 }
 
 enum ProductCategory {
