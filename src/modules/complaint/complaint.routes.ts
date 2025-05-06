@@ -6,15 +6,26 @@ import { prisma } from '../../plugins/prisma'
 const complaintPostSchema = z.object({
   positionId: z.string().uuid(),
   Reason: z.enum([
-    'WRONG_SIZE', 'WRONG_COLOR', 'PRINT_INCORRECT', 'PRINT_OFF_CENTER',
-    'DAMAGED_ITEM', 'STAINED', 'LATE_DELIVERY', 'WRONG_PRODUCT',
-    'MISSING_ITEM', 'BAD_QUALITY', 'NOT_AS_DESCRIBED', 'OTHER',
+    'WRONG_SIZE',
+    'WRONG_COLOR',
+    'PRINT_INCORRECT',
+    'PRINT_OFF_CENTER',
+    'DAMAGED_ITEM',
+    'STAINED',
+    'LATE_DELIVERY',
+    'WRONG_PRODUCT',
+    'MISSING_ITEM',
+    'BAD_QUALITY',
+    'NOT_AS_DESCRIBED',
+    'OTHER',
   ]),
   ComplaintKind: z.enum(['INTERN', 'EXTERN']),
 })
 
 const complaintQuerySchema = z.object({
   positionId: z.string().uuid().optional(),
+  orderId: z.string().uuid().optional(),
+  customerId: z.string().uuid().optional(),
 })
 
 export default async function complaintRoutes(fastify: FastifyInstance) {
@@ -24,6 +35,7 @@ export default async function complaintRoutes(fastify: FastifyInstance) {
       try {
         const query = complaintQuerySchema.parse(request.query)
 
+        // Filter: positionId
         if (query.positionId) {
           const complaints = await prisma.complaint.findMany({
             where: { positionId: query.positionId },
@@ -31,6 +43,33 @@ export default async function complaintRoutes(fastify: FastifyInstance) {
           return reply.send(complaints)
         }
 
+        // Filter: orderId
+        if (query.orderId) {
+          const complaints = await prisma.complaint.findMany({
+            where: {
+              position: {
+                orderId: query.orderId,
+              },
+            },
+          })
+          return reply.send(complaints)
+        }
+
+        // Filter: customerId
+        if (query.customerId) {
+          const complaints = await prisma.complaint.findMany({
+            where: {
+              position: {
+                order: {
+                  customerId: query.customerId,
+                },
+              },
+            },
+          })
+          return reply.send(complaints)
+        }
+
+        // Kein Filter → alle Complaints
         const all = await prisma.complaint.findMany()
         return reply.send(all)
       } catch (err) {

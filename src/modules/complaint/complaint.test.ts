@@ -81,15 +81,34 @@ import {
     })
   
     it('should list complaints by positionId', async () => {
+      const customer = await prisma.customer.create({
+        data: {
+          id: randomUUID(),
+          name: 'KundePos',
+          email: `pos-${Date.now()}@mail.com`,
+          phone: '11111',
+          customerType: 'WEBSHOP',
+        },
+      })
+  
+      const order = await prisma.order.create({
+        data: {
+          id: randomUUID(),
+          orderNumber: '25_600',
+          customerId: customer.id,
+          deletedAt: null,
+        },
+      })
+  
       const position = await prisma.position.create({
         data: {
           id: randomUUID(),
-          orderId: (await prisma.order.findFirst())!.id,
-          pos_number: 99,
-          name: 'Pos 99',
+          orderId: order.id,
+          pos_number: 2,
+          name: 'Position X',
           amount: 2,
           prodCategory: 'T_SHIRT',
-          design: 'Logo',
+          design: 'DesignX',
           Status: 'OPEN',
           shirtSize: 'M',
         },
@@ -107,6 +126,114 @@ import {
       const res = await app.inject({
         method: 'GET',
         url: `/complaints?positionId=${position.id}`,
+      })
+  
+      expect(res.statusCode).toBe(200)
+      const complaints = JSON.parse(res.body)
+      expect(Array.isArray(complaints)).toBe(true)
+      expect(complaints[0].positionId).toBe(position.id)
+    })
+  
+    it('should list complaints by orderId', async () => {
+      const customer = await prisma.customer.create({
+        data: {
+          id: randomUUID(),
+          name: 'KundeOrder',
+          email: `order-${Date.now()}@mail.com`,
+          phone: '22222',
+          customerType: 'WEBSHOP',
+        },
+      })
+  
+      const order = await prisma.order.create({
+        data: {
+          id: randomUUID(),
+          orderNumber: '25_700',
+          customerId: customer.id,
+          deletedAt: null,
+        },
+      })
+  
+      const position = await prisma.position.create({
+        data: {
+          id: randomUUID(),
+          orderId: order.id,
+          pos_number: 3,
+          name: 'Pos Order',
+          amount: 1,
+          prodCategory: 'T_SHIRT',
+          design: 'O-Design',
+          Status: 'OPEN',
+          shirtSize: 'L',
+        },
+      })
+  
+      await prisma.complaint.create({
+        data: {
+          id: randomUUID(),
+          positionId: position.id,
+          Reason: 'BAD_QUALITY',
+          ComplaintKind: 'EXTERN',
+        },
+      })
+  
+      const res = await app.inject({
+        method: 'GET',
+        url: `/complaints?orderId=${order.id}`,
+      })
+  
+      expect(res.statusCode).toBe(200)
+      const complaints = JSON.parse(res.body)
+      expect(Array.isArray(complaints)).toBe(true)
+      expect(complaints[0].positionId).toBe(position.id)
+    })
+  
+    it('should list complaints by customerId', async () => {
+      const customer = await prisma.customer.create({
+        data: {
+          id: randomUUID(),
+          name: 'KundeCustom',
+          email: `cust-${Date.now()}@mail.com`,
+          phone: '33333',
+          customerType: 'BUSINESS',
+        },
+      })
+  
+      const order = await prisma.order.create({
+        data: {
+          id: randomUUID(),
+          orderNumber: '25_800',
+          customerId: customer.id,
+          deletedAt: null,
+        },
+      })
+  
+      const position = await prisma.position.create({
+        data: {
+          id: randomUUID(),
+          orderId: order.id,
+          pos_number: 4,
+          name: 'Pos Customer',
+          amount: 1,
+          prodCategory: 'T_SHIRT',
+          design: 'C-Design',
+          Status: 'OPEN',
+          shirtSize: 'S',
+        },
+      })
+  
+      await prisma.complaint.create({
+        data: {
+          id: randomUUID(),
+          positionId: position.id,
+          Reason: 'STAINED',
+          ComplaintKind: 'INTERN',
+        },
+      })
+  
+      const res = await app.inject({
+        method: 'GET',
+        url: `/complaints?customerId=${customer.id}`,
       })
   
       expect(res.statusCode).toBe(200)
