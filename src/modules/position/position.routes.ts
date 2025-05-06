@@ -25,30 +25,6 @@ const patchSchema = {
     compositeId: z.string(),
   }),
 }
-const createSchema = {
-  body: z.object({
-    orderId: z.string(),
-    description: z.string().optional().nullable(),
-    amount: z.number(),
-    pos_number: z.number(),
-    name: z.string(),
-    productCategory: z.enum(['T_SHIRT']),
-    design: z.string(),
-    color: z
-      .string()
-      .refine(
-        (s) =>
-          /^cmyk\(\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*\)$/.test(
-            s,
-          ) &&
-          [...s.matchAll(/\d{1,3}/g)].every(
-            (m) => Number(m[0]) >= 0 && Number(m[0]) <= 100,
-          ),
-        { message: 'Invalid CMYK value' },
-      ), //wir erwarten hier CMYK values
-    shirtSize: z.enum(['S', 'M', 'L', 'XL']),
-  }),
-}
 export default async function positionRoutes(fastify: FastifyInstance) {
   fastify.patch('/:compositeId', {
     schema: {},
@@ -66,6 +42,31 @@ export default async function positionRoutes(fastify: FastifyInstance) {
   })
 
   //Create new position
+  const createSchema = {
+    body: z.object({
+      orderId: z.string(),
+      description: z.string().optional().nullable(),
+      amount: z.number(),
+      pos_number: z.number(),
+      name: z.string(),
+      productCategory: z.enum(['T_SHIRT']),
+      design: z.string(),
+      color: z
+        .string()
+        .refine(
+          (s) =>
+            /^cmyk\(\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*\)$/.test(
+              s,
+            ) &&
+            [...s.matchAll(/\d{1,3}/g)].every(
+              (m) => Number(m[0]) >= 0 && Number(m[0]) <= 100,
+            ),
+          { message: 'Invalid CMYK value' },
+        ), //wir erwarten hier CMYK values
+      shirtSize: z.enum(['S', 'M', 'L', 'XL']),
+    }),
+  }
+
   fastify.post('/', {
     schema: {}, // only for docs
     handler: async (request, reply) => {

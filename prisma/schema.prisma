@@ -63,15 +63,16 @@ model Position {
 
 // fürs Frontend
 model StandardProduct {
-  id        String          @id @default(uuid())
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  deletedAt DateTime?
+  id              String          @id @default(uuid())
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?
   //
-  name      String
-  color     Json?
-  shirtSize ShirtSize?
-  ProdCat   ProductCategory
+  name            String
+  color           String?
+  shirtSize       ShirtSize?
+  productCategory ProductCategory
+  MinAmount       Int
 }
 
 model Complaint {
