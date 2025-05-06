@@ -1,6 +1,7 @@
-import { FastifyInstance } from 'fastify'
-import { z } from 'zod'
+import { zodToJsonSchema } from 'zod-to-json-schema'
 import { createCustomer } from './customer.service'
+import { z } from 'zod'
+import { FastifyInstance } from 'fastify'
 
 const createCustomerSchema = {
   body: z.object({
@@ -13,7 +14,12 @@ const createCustomerSchema = {
 
 export default async function customerRoutes(fastify: FastifyInstance) {
   fastify.post('/', {
-    schema: {},
+    schema: {
+      body: zodToJsonSchema(createCustomerSchema.body),
+      response: {
+        200: zodToJsonSchema(createCustomerSchema.body), // falls Response gleich dem Input
+      },
+    },
     handler: async (request, reply) => {
       const { name, email, phone, customerType } =
         createCustomerSchema.body.parse(request.body)
