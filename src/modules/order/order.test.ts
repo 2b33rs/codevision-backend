@@ -34,7 +34,7 @@ import {
   })
   
   describe('Order Routes E2E', () => {
-    it('should create an order', async () => {
+    it('should create an order with formatted orderNumber', async () => {
       const customer = await prisma.customer.create({
         data: {
           id: randomUUID(),
@@ -57,6 +57,9 @@ import {
       const order = JSON.parse(res.body)
       expect(order).toHaveProperty('id')
       expect(order.customerId).toBe(customer.id)
+  
+      // Prüfe Format: z.B. "25_1"
+      expect(order.orderNumber).toMatch(/^\d{2}_\d+$/)
     })
   
     it('should list all order', async () => {
@@ -73,7 +76,7 @@ import {
       await prisma.order.create({
         data: {
           id: randomUUID(),
-          orderNumber: '999',
+          orderNumber: '25_999',
           customerId: customer.id,
           deletedAt: null,
         },
@@ -104,7 +107,7 @@ import {
       await prisma.order.create({
         data: {
           id: randomUUID(),
-          orderNumber: '123',
+          orderNumber: '25_123',
           customerId: customer.id,
           deletedAt: null,
         },
@@ -135,7 +138,7 @@ import {
       const order = await prisma.order.create({
         data: {
           id: randomUUID(),
-          orderNumber: '456',
+          orderNumber: '25_456',
           customerId: customer.id,
           deletedAt: null,
         },

@@ -1,8 +1,18 @@
 import { prisma } from '../../plugins/prisma'
-import { randomUUID } from 'crypto' 
+import { randomUUID } from 'crypto'
 
 export async function createOrder(customerId: string) {
+  const now = new Date()
+  const yearShort = now.getFullYear().toString().slice(2) // z. B. "25"
+  const prefix = `${yearShort}_` // z. B. "25_"
+
+  // Finde die höchste Ordernummer mit diesem Jahres-Prefix
   const lastOrder = await prisma.order.findFirst({
+    where: {
+      orderNumber: {
+        startsWith: prefix,
+      },
+    },
     orderBy: {
       orderNumber: 'desc',
     },
@@ -11,22 +21,18 @@ export async function createOrder(customerId: string) {
     },
   })
 
+  let counter = 1
 
-  let newOrderNumber: string
   if (lastOrder?.orderNumber) {
-    const asNumber = parseInt(lastOrder.orderNumber, 10)
-    newOrderNumber = isNaN(asNumber) ? '1' : (asNumber + 1).toString()
-  } else {
-    newOrderNumber = '1'
+    const lastNumberPart = parseInt(lastOrder.orderNumber.split('_')[1], 10)
+    counter = isNaN(lastNumberPart) ? 1 : lastNumberPart + 1
   }
 
-  // UUID generieren
-  const id = randomUUID()
+  const newOrderNumber = `${prefix}${counter}` // z. B. "25_3"
 
-  // Order erstellen
   return prisma.order.create({
     data: {
-      id,
+      id: randomUUID(),
       orderNumber: newOrderNumber,
       customer: {
         connect: { id: customerId },
