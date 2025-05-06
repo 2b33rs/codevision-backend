@@ -4,6 +4,7 @@ import {
   createPosition,
   updatePositionStatusByBusinessKey,
 } from './position.service'
+import { zodToJsonSchema } from 'zod-to-json-schema'
 
 const patchSchema = {
   body: z.object({
@@ -27,7 +28,18 @@ const patchSchema = {
 }
 export default async function positionRoutes(fastify: FastifyInstance) {
   fastify.patch('/:compositeId', {
-    schema: {},
+    schema: {
+      tags: ['Position'],
+      description:
+        'Update the status of an existing position using a composite business key',
+      body: zodToJsonSchema(patchSchema.body),
+      response: {
+        200: {
+          type: 'string',
+          example: 'Updated position status successfully to SHIPPED',
+        },
+      },
+    },
     handler: async (request, reply) => {
       const { compositeId } = patchSchema.params.parse(request.params)
 
@@ -37,7 +49,7 @@ export default async function positionRoutes(fastify: FastifyInstance) {
         compositeId,
         status,
       )
-      reply.send('Updated position status successfully to ' + status)
+      reply.send('Updated position status successfully to ' + updated.Status)
     },
   })
 
@@ -66,9 +78,67 @@ export default async function positionRoutes(fastify: FastifyInstance) {
       shirtSize: z.enum(['S', 'M', 'L', 'XL']),
     }),
   }
-
   fastify.post('/', {
-    schema: {}, // only for docs
+    schema: {
+      tags: ['Position'],
+      description: 'Create a new production position',
+      body: zodToJsonSchema(createSchema.body),
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+            deletedAt: { type: 'string', format: 'date-time', nullable: true },
+            orderId: { type: 'string' },
+            pos_number: { type: 'number' },
+            description: { type: 'string', nullable: true },
+            Status: {
+              type: 'string',
+              enum: [
+                'OPEN',
+                'FINISHED_MATERIAL_REQUESTED',
+                'PRODUCTION_NOTIFIED',
+                'IN_DYEING',
+                'IN_PRINTING',
+                'PRODUCTION_COMPLETED',
+                'FINISHED_MATERIAL_READY_FOR_PICKUP',
+                'READY_FOR_SHIPMENT',
+                'SHIPPED',
+                'COMPLETED',
+                'CANCELLED',
+              ],
+            },
+            amount: { type: 'number' },
+            name: { type: 'string' },
+            color: { type: 'object', nullable: true }, // ggf. genauer, je nach Struktur
+            shirtSize: {
+              type: 'string',
+              enum: ['S', 'M', 'L', 'XL'],
+              nullable: true,
+            },
+            prodCategory: {
+              type: 'string',
+              enum: ['T_SHIRT'], // ggf. erweitern
+            },
+            design: { type: 'string' },
+          },
+          required: [
+            'id',
+            'createdAt',
+            'updatedAt',
+            'orderId',
+            'pos_number',
+            'Status',
+            'amount',
+            'name',
+            'prodCategory',
+            'design',
+          ],
+        },
+      },
+    }, // only for docs
     handler: async (request, reply) => {
       const {
         orderId,
@@ -82,7 +152,7 @@ export default async function positionRoutes(fastify: FastifyInstance) {
         shirtSize,
       } = createSchema.body.parse(request.body)
 
-      const newPosition = await createPosition(
+      return await createPosition(
         orderId,
         amount,
         pos_number,
@@ -93,7 +163,6 @@ export default async function positionRoutes(fastify: FastifyInstance) {
         shirtSize,
         description ?? '',
       )
-      reply.send('Created new position: ' + newPosition)
     },
   })
 }
