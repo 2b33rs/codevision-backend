@@ -18,9 +18,5 @@ export function createServer() {
   registerPlugins(app)
   registerModules(app)
 
-  app.get('/', () => {
-    return 'pong'
-  })
-
   return app
 }
