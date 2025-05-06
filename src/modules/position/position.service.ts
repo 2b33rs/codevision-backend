@@ -26,6 +26,7 @@ export async function updatePositionStatusByBusinessKey(
     data: { Status: status },
   })
 }
+
 //Create new position
 // This function creates a new position in the database
 export async function createPosition(
@@ -33,7 +34,7 @@ export async function createPosition(
   amount: number,
   pos_number: number,
   name: string,
-  prodCat: ProductCategory,
+  prodCategory: ProductCategory,
   design: string,
   color: string,
   shirtSize: ShirtSize,
@@ -46,7 +47,7 @@ export async function createPosition(
       description,
       amount,
       name,
-      prodCat: prodCat,
+      prodCategory,
       design,
       //color,
       shirtSize,

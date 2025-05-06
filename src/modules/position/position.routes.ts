@@ -67,7 +67,7 @@ export default async function positionRoutes(fastify: FastifyInstance) {
 
   //Create new position
   fastify.post('/', {
-    schema: createSchema, // only for docs
+    schema: {}, // only for docs
     handler: async (request, reply) => {
       const {
         orderId,
