@@ -33,7 +33,8 @@ model Order {
   updatedAt   DateTime   @updatedAt
   deletedAt   DateTime?
   //
-  orderNumber String     @unique
+  seq         Int        @default(autoincrement())
+  orderNumber String     @default(dbgenerated()) @db.VarChar(8)
   customer    Customer   @relation(fields: [customerId], references: [id])
   customerId  String
   positions   Position[]
@@ -55,7 +56,7 @@ model Position {
   amount       Int
   // pro T-Shirt
   name         String
-  color        Json?
+  color        String?
   shirtSize    ShirtSize?
   prodCategory ProductCategory
   design       String
@@ -81,7 +82,7 @@ model Complaint {
   updatedAt     DateTime      @updatedAt
   deletedAt     DateTime?
   // Fremdschlüssel
-  position   Position      @relation(fields: [positionId], references: [id])
+  position      Position      @relation(fields: [positionId], references: [id])
   positionId    String
   //
   Reason        String
@@ -103,9 +104,9 @@ enum POSITION_STATUS {
 }
 
 enum COMPLAINT_REASON {
-  WRONG_SIZE    
+  WRONG_SIZE
   WRONG_COLOR
-  PRINT_INCORRECT   
+  PRINT_INCORRECT
   PRINT_OFF_CENTER
   DAMAGED_ITEM
   STAINED

@@ -2,6 +2,9 @@
 CREATE TYPE "POSITION_STATUS" AS ENUM ('OPEN', 'FINISHED_MATERIAL_REQUESTED', 'PRODUCTION_NOTIFIED', 'IN_DYEING', 'IN_PRINTING', 'PRODUCTION_COMPLETED', 'FINISHED_MATERIAL_READY_FOR_PICKUP', 'READY_FOR_SHIPMENT', 'SHIPPED', 'COMPLETED', 'CANCELLED');
 
 -- CreateEnum
+CREATE TYPE "COMPLAINT_REASON" AS ENUM ('WRONG_SIZE', 'WRONG_COLOR', 'PRINT_INCORRECT', 'PRINT_OFF_CENTER', 'DAMAGED_ITEM', 'STAINED', 'LATE_DELIVERY', 'WRONG_PRODUCT', 'MISSING_ITEM', 'BAD_QUALITY', 'NOT_AS_DESCRIBED', 'OTHER');
+
+-- CreateEnum
 CREATE TYPE "ProductCategory" AS ENUM ('T_SHIRT');
 
 -- CreateEnum
@@ -45,7 +48,8 @@ CREATE TABLE "Order" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
-    "orderNumber" TEXT NOT NULL,
+    "seq" SERIAL NOT NULL,
+    "orderNumber" VARCHAR(8) NOT NULL,
     "customerId" TEXT NOT NULL,
 
     CONSTRAINT "Order_pkey" PRIMARY KEY ("id")
@@ -63,7 +67,7 @@ CREATE TABLE "Position" (
     "Status" "POSITION_STATUS" NOT NULL DEFAULT 'OPEN',
     "amount" INTEGER NOT NULL,
     "name" TEXT NOT NULL,
-    "color" JSONB,
+    "color" TEXT,
     "shirtSize" "ShirtSize",
     "prodCategory" "ProductCategory" NOT NULL,
     "design" TEXT NOT NULL,
@@ -78,9 +82,10 @@ CREATE TABLE "StandardProduct" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
     "name" TEXT NOT NULL,
-    "color" JSONB,
+    "color" TEXT,
     "shirtSize" "ShirtSize",
-    "ProdCat" "ProductCategory" NOT NULL,
+    "productCategory" "ProductCategory" NOT NULL,
+    "MinAmount" INTEGER NOT NULL,
 
     CONSTRAINT "StandardProduct_pkey" PRIMARY KEY ("id")
 );
@@ -103,9 +108,6 @@ CREATE UNIQUE INDEX "Customer_id_key" ON "Customer"("id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Customer_email_key" ON "Customer"("email");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Order_orderNumber_key" ON "Order"("orderNumber");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Position_id_key" ON "Position"("id");
