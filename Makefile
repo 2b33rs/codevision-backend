@@ -3,7 +3,7 @@ run:
 	npm run start
 
 db:
-	npx prisma migrate dev
-	npx prisma generate
-	npx prisma db seed
-	npx prisma studio
+	prisma migrate dev
+	prisma generate
+	prisma db seed
+	prisma studio

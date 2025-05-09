@@ -34,7 +34,11 @@ export async function createCustomer(
 //List all customers
 export async function listCustomers() {
   // Get all customers from the database
-  return prisma.customer.findMany();
+  return prisma.customer.findMany({
+    orderBy: {
+      updatedAt: 'desc',
+    },
+  })
 }
 
 //get customer by id
@@ -44,24 +48,24 @@ export async function getCustomerById(customerId: string) {
     where: {
       id: customerId,
     },
-  });
+  })
 }
 
 //update customer by id
 export async function updateCustomerById(
   customerId: string,
   updateData: {
-    name?: string;
-    email?: string;
-    phone?: string;
-    addr_country?: $Enums.addr_Land;
-    addr_city?: string;
-    addr_zip?: string;
-    addr_street?: string;
-    addr_line1?: string;
-    addr_line2?: string;
-    customerType?: CustomerType;
-  }
+    name?: string
+    email?: string
+    phone?: string
+    addr_country?: $Enums.addr_Land
+    addr_city?: string
+    addr_zip?: string
+    addr_street?: string
+    addr_line1?: string
+    addr_line2?: string
+    customerType?: CustomerType
+  },
 ) {
   // Update a customer by their ID in the database
   return prisma.customer.update({
@@ -69,7 +73,7 @@ export async function updateCustomerById(
       id: customerId,
     },
     data: updateData,
-  });
+  })
 }
 
 //delete customer by id
@@ -79,5 +83,5 @@ export async function deleteCustomerById(customerId: string) {
     where: {
       id: customerId,
     },
-  });
+  })
 }
