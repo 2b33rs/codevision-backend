@@ -5,11 +5,14 @@ import productRoutes from './product/product.routes'
 import orderRoutes from './order/order.routes'
 import complaintRoutes from './complaint/complaint.routes'
 
-
 export async function registerModules(app: FastifyInstance) {
-  app.register(positionRoutes, { prefix: '/position' })
-  app.register(customerRoutes, { prefix: '/customer' })
-  app.register(productRoutes, { prefix: '/product' })
-  app.register(orderRoutes, { prefix: '/order' })
-  app.register(complaintRoutes, { prefix: '/complaints' })
+  for (const { prefix, plugin } of [
+    { prefix: '/position', plugin: positionRoutes },
+    { prefix: '/customer', plugin: customerRoutes },
+    { prefix: '/product', plugin: productRoutes },
+    { prefix: '/order', plugin: orderRoutes },
+    { prefix: '/complaints', plugin: complaintRoutes },
+  ]) {
+    app.register(plugin, { prefix })
+  }
 }
