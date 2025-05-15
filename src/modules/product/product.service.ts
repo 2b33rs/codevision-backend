@@ -36,6 +36,24 @@ export async function read(
   })
 }
 
+export async function createProductionOrder(
+  req: FastifyRequest<{ Params: { id: string }; Body: { amount: number } }>,
+  reply: FastifyReply,
+) {
+  const { id } = req.params
+  const { amount } = req.body
+
+  console.log(`Produktionsauftrag für Produkt ${id}, Menge: ${amount}`)
+
+  // Beispiel: Produkt mit inProduction-Feld hochzählen
+  return {
+    status: 'ok',
+    message: `Produktionsauftrag für ${amount} Stück wurde erstellt`,
+    productId: id,
+    amount,
+  }
+}
+
 export async function list(req: FastifyRequest, res: FastifyReply) {
   const products = await prisma.standardProduct.findMany({
     where: { deletedAt: null },

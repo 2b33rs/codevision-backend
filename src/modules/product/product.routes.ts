@@ -1,58 +1,22 @@
-import { zodToJsonSchema } from 'zod-to-json-schema'
-import { z } from 'zod'
 import { FastifyInstance } from 'fastify'
-import { create, list, read, remove, update } from './product.service'
+import {
+  create,
+  createProductionOrder,
+  list,
+  read,
+  remove,
+  update,
+} from './product.service'
+import { schemas } from './product.schema'
 
-const idSchema = z.object({ id: z.string().uuid() })
-
-const createProductSchema = z.object({
-  name: z.string(),
-  color: z.string(),
-  shirtSize: z.string().optional(),
-  productCategory: z.string(),
-  minAmount: z.number(),
-})
-
-const updateProductSchema = createProductSchema.partial()
-const standardProductSchema = {
-  type: 'object',
-  properties: {
-    id: { type: 'string', format: 'uuid' },
-    createdAt: { type: 'string', format: 'date-time' },
-    updatedAt: { type: 'string', format: 'date-time' },
-    deletedAt: { type: 'string', format: 'date-time', nullable: true },
-    name: { type: 'string' },
-    color: { type: 'string', nullable: true },
-    shirtSize: {
-      type: 'string',
-      enum: ['S', 'M', 'L', 'XL'],
-      nullable: true,
-    },
-    productCategory: {
-      type: 'string',
-      enum: ['T_SHIRT'],
-    },
-    minAmount: { type: 'number' },
-    currentStock: { type: 'number' },
-  },
-  required: [
-    'id',
-    'createdAt',
-    'updatedAt',
-    'name',
-    'productCategory',
-    'minAmount',
-    'currentStock',
-  ],
-}
 export default async function productRoutes(fastify: FastifyInstance) {
   fastify.post('/', {
     schema: {
       tags: ['Product'],
       description: 'Create a new standard product',
-      body: zodToJsonSchema(createProductSchema),
+      body: schemas.create,
       response: {
-        200: standardProductSchema,
+        200: schemas.product,
       },
     },
     handler: create,
@@ -62,9 +26,9 @@ export default async function productRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['Product'],
       description: 'Get a standard product by ID',
-      params: zodToJsonSchema(idSchema),
+      params: schemas.params,
       response: {
-        200: standardProductSchema,
+        200: schemas.product,
         404: { type: 'null' },
       },
     },
@@ -76,10 +40,7 @@ export default async function productRoutes(fastify: FastifyInstance) {
       tags: ['Product'],
       description: 'List all standard products',
       response: {
-        200: {
-          type: 'array',
-          items: standardProductSchema,
-        },
+        200: schemas.list,
       },
     },
     handler: list,
@@ -89,10 +50,10 @@ export default async function productRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['Product'],
       description: 'Update an existing standard product by ID',
-      params: zodToJsonSchema(idSchema),
-      body: zodToJsonSchema(updateProductSchema),
+      params: schemas.params,
+      body: schemas.update,
       response: {
-        200: standardProductSchema,
+        200: schemas.product,
       },
     },
     handler: update,
@@ -102,11 +63,24 @@ export default async function productRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['Product'],
       description: 'Delete a standard product by ID',
-      params: zodToJsonSchema(idSchema),
+      params: schemas.params,
       response: {
-        200: standardProductSchema,
+        200: schemas.product,
       },
     },
     handler: remove,
+  })
+
+  fastify.post('/:id/production-order', {
+    schema: {
+      tags: ['Product'],
+      description: 'Erstellt einen Produktionsauftrag für ein Produkt',
+      params: schemas.params,
+      body: schemas.productionOrder,
+      response: {
+        200: schemas.productionOrderResponse,
+      },
+    },
+    handler: createProductionOrder,
   })
 }
