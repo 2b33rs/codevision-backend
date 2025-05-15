@@ -3,7 +3,7 @@ import { z } from 'zod'
 import {
   getOrderById,
   getOrdersByCustomer,
-  getAllOrders,
+  getAllOrders
 } from './order.service'
 import { createOrder } from './order.service'
 import { prisma } from '../../plugins/prisma'
