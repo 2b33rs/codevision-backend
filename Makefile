@@ -3,7 +3,5 @@ run:
 	npm run start
 
 db:
-	prisma migrate dev
-	prisma generate
-	prisma db seed
+	prisma migrate reset --force
 	prisma studio

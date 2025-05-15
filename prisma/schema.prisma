@@ -73,7 +73,7 @@ model StandardProduct {
   color           String?
   shirtSize       ShirtSize?
   productCategory ProductCategory
-  MinAmount       Int
+  minAmount       Int
 }
 
 model Complaint {

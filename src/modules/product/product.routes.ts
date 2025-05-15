@@ -10,7 +10,7 @@ const createProductSchema = z.object({
   color: z.string(),
   shirtSize: z.string().optional(),
   productCategory: z.string(),
-  MinAmount: z.number(),
+  minAmount: z.number(),
 })
 
 const updateProductSchema = createProductSchema.partial()
@@ -32,7 +32,8 @@ const standardProductSchema = {
       type: 'string',
       enum: ['T_SHIRT'],
     },
-    MinAmount: { type: 'number' },
+    minAmount: { type: 'number' },
+    currentStock: { type: 'number' },
   },
   required: [
     'id',
@@ -40,7 +41,8 @@ const standardProductSchema = {
     'updatedAt',
     'name',
     'productCategory',
-    'MinAmount',
+    'minAmount',
+    'currentStock',
   ],
 }
 export default async function productRoutes(fastify: FastifyInstance) {

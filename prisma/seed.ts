@@ -68,7 +68,7 @@ async function main() {
   await prisma.standardProduct.createMany({
     data: Array.from({ length: 5 }).map(() => ({
       name: faker.commerce.productName(),
-      MinAmount: faker.number.int({ min: 1, max: 20 }),
+      minAmount: faker.number.int({ min: 1, max: 20 }),
       color: [0, 0, 0, 0]
         .map(() => faker.number.int({ min: 0, max: 100 }))
         .join(','),

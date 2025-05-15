@@ -42,7 +42,7 @@ describe('Product Routes E2E', () => {
         color: 'cmyk(0%,0%,0%,0%)',
         shirtSize: 'M',
         productCategory: 'T_SHIRT',
-        MinAmount: 1,
+        minAmount: 1,
       },
     })
     expect(response.statusCode).toBe(200)
@@ -55,7 +55,7 @@ describe('Product Routes E2E', () => {
       data: {
         name: 'List Test',
         productCategory: 'T_SHIRT',
-        MinAmount: 2,
+        minAmount: 2,
         color: 'cmyk(0%,0%,0%,0%)',
         shirtSize: 'M',
       },
@@ -71,7 +71,7 @@ describe('Product Routes E2E', () => {
       data: {
         name: 'Single Get',
         productCategory: 'T_SHIRT',
-        MinAmount: 3,
+        minAmount: 3,
         color: 'cmyk(0%,0%,0%,0%)',
         shirtSize: 'M',
       },
@@ -90,7 +90,7 @@ describe('Product Routes E2E', () => {
       data: {
         name: 'To Update',
         productCategory: 'T_SHIRT',
-        MinAmount: 4,
+        minAmount: 4,
         color: 'cmyk(0%,0%,0%,0%)',
         shirtSize: 'M',
       },
@@ -101,7 +101,7 @@ describe('Product Routes E2E', () => {
       payload: {
         name: 'Updated Name',
         productCategory: 'T_SHIRT',
-        MinAmount: 1,
+        minAmount: 1,
       },
     })
     expect(res.statusCode).toBe(200)
@@ -114,7 +114,7 @@ describe('Product Routes E2E', () => {
       data: {
         name: 'To Delete',
         productCategory: 'T_SHIRT',
-        MinAmount: 5,
+        minAmount: 5,
         color: 'cmyk(0%,0%,0%,0%)',
         shirtSize: 'M',
       },
