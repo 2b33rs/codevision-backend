@@ -5,18 +5,22 @@ import {
   getAllOrders,
   getOrderById,
   getOrdersByCustomer,
+  PositionInput,
 } from './order.service'
 import { randomUUID } from 'crypto'
 import { setTimeout } from 'timers/promises'
 
 beforeEach(async () => {
-  // Testdaten vorher bereinigen
+  // erst alle Complaints löschen, dann Positionen, Orders, Kunden
+  await prisma.complaint.deleteMany()
+  await prisma.position.deleteMany()
   await prisma.order.deleteMany()
   await prisma.customer.deleteMany()
 })
 
-describe('Order Service Unit Tests (cleaned setup)', () => {
-  it('should create a new order with incremented order number', async () => {
+describe('Order Service Unit Tests (mit Positionen)', () => {
+  it('should create a new order with positions and incremented order number', async () => {
+    // 1) Kunden anlegen
     const customer = await prisma.customer.create({
       data: {
         id: randomUUID(),
@@ -27,14 +31,57 @@ describe('Order Service Unit Tests (cleaned setup)', () => {
       },
     })
 
-    const newOrder = await createOrder(customer.id)
+    // 2) Beispiel-Positionen
+    const positions: PositionInput[] = [
+      {
+        amount: 3,
+        pos_number: 1,
+        name: 'T-Shirt Gold',
+        productCategory: 'T_SHIRT',
+        design: 'DesignA',
+        color: 'cmyk(0%,50%,100%,0%)',
+        shirtSize: 'S',
+        description: 'Goldenes T-Shirt',
+      },
+      {
+        amount: 2,
+        pos_number: 2,
+        name: 'T-Shirt Blau',
+        productCategory: 'T_SHIRT',
+        design: 'DesignB',
+        color: 'cmyk(100%,0%,0%,0%)',
+        shirtSize: 'M',
+      },
+    ]
 
+    // 3) Order anlegen
+    const newOrder = await createOrder(customer.id, positions)
+
+    // 4) Assertions
     expect(newOrder).toHaveProperty('id')
-    expect(newOrder.customerId).toBe(customer.id)
-    expect(newOrder.orderNumber).toMatch(/^\d{2}_\d+$/) // z. B. "25_1"
+    // jetzt rein numerisch, z.B. "20250136"
+    expect(newOrder.orderNumber).toMatch(/^\d+$/)
+    expect(Array.isArray(newOrder.positions)).toBe(true)
+    expect(newOrder.positions.length).toBe(positions.length)
+
+    // Jede Position auf korrekte Werte prüfen
+    newOrder.positions.forEach((pos, idx) => {
+      const inp = positions[idx]
+      expect(pos.amount).toBe(inp.amount)
+      expect(pos.pos_number).toBe(inp.pos_number)
+      expect(pos.name).toBe(inp.name)
+      expect(pos.prodCategory).toBe(inp.productCategory)
+      expect(pos.design).toBe(inp.design)
+      expect(pos.color).toBe(inp.color)
+      expect(pos.shirtSize).toBe(inp.shirtSize)
+      // description ist in DB nullable, leer → null
+      expect(pos.description).toBe(inp.description ?? null)
+      expect(pos.Status).toBe('OPEN')
+      expect(pos.orderId).toBe(newOrder.id)
+    })
   })
 
-  it('should get order by id', async () => {
+  it('should get order by id including positions', async () => {
     const customer = await prisma.customer.create({
       data: {
         id: randomUUID(),
@@ -45,11 +92,25 @@ describe('Order Service Unit Tests (cleaned setup)', () => {
       },
     })
 
-    const order = await createOrder(customer.id)
-    const found = await getOrderById(order.id)
+    const positions: PositionInput[] = [
+      {
+        amount: 1,
+        pos_number: 1,
+        name: 'Pulli Grün',
+        productCategory: 'T_SHIRT',
+        design: 'DesignC',
+        color: 'cmyk(50%,0%,50%,0%)',
+        shirtSize: 'L',
+      },
+    ]
+
+    const created = await createOrder(customer.id, positions)
+    const found = await getOrderById(created.id)
 
     expect(found).not.toBeNull()
-    expect(found?.id).toBe(order.id)
+    expect(found?.id).toBe(created.id)
+    expect(Array.isArray(found?.positions)).toBe(true)
+    expect(found?.positions.length).toBe(positions.length)
   })
 
   it('should get all orders for a customer', async () => {
@@ -63,15 +124,29 @@ describe('Order Service Unit Tests (cleaned setup)', () => {
       },
     })
 
-    await createOrder(customer.id)
-    await setTimeout(50) // Zeitverzögerung für saubere OrderNumber
-    await createOrder(customer.id)
+    const positions: PositionInput[] = [
+      {
+        amount: 1,
+        pos_number: 1,
+        name: 'T-Shirt A',
+        productCategory: 'T_SHIRT',
+        design: 'Design1',
+        color: 'cmyk(0%,0%,0%,0%)',
+        shirtSize: 'S',
+      },
+    ]
+
+    await createOrder(customer.id, positions)
+    await setTimeout(50) // Pause, damit Sequenz hochzählt
+    await createOrder(customer.id, positions)
 
     const orders = await getOrdersByCustomer(customer.id)
     expect(Array.isArray(orders)).toBe(true)
     expect(orders.length).toBe(2)
-    orders.forEach(order => {
+    orders.forEach((order) => {
       expect(order.customerId).toBe(customer.id)
+      expect(Array.isArray(order.positions)).toBe(true)
+      expect(order.positions.length).toBe(positions.length)
     })
   })
 
@@ -86,12 +161,27 @@ describe('Order Service Unit Tests (cleaned setup)', () => {
       },
     })
 
-    await createOrder(customer.id)
+    const positions: PositionInput[] = [
+      {
+        amount: 1,
+        pos_number: 1,
+        name: 'Item1',
+        productCategory: 'T_SHIRT',
+        design: 'DesignX',
+        color: 'cmyk(0%,0%,0%,0%)',
+        shirtSize: 'XL',
+      },
+    ]
+
+    await createOrder(customer.id, positions)
     await setTimeout(50)
-    await createOrder(customer.id)
+    await createOrder(customer.id, positions)
 
     const orders = await getAllOrders()
     expect(Array.isArray(orders)).toBe(true)
     expect(orders.length).toBeGreaterThanOrEqual(2)
+    orders.forEach((order) => {
+      expect(Array.isArray(order.positions)).toBe(true)
+    })
   })
 })

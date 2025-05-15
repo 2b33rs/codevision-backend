@@ -1,53 +1,77 @@
 import { prisma } from '../../plugins/prisma'
 import { randomUUID } from 'crypto'
+import { createPosition } from '../position/position.service'
+import { $Enums } from '../../../generated/prisma'
 
-export async function createOrder(customerId: string) {
-  const now = new Date()
-  const yearShort = now.getFullYear().toString().slice(2)
-  const prefix = `${yearShort}_`
+type ProductCategory = $Enums.ProductCategory
+type ShirtSize       = $Enums.ShirtSize
 
-  let counter = 1
-  let createdOrder = null
+/* ---------- Eingabetyp ---------- */
+export interface PositionInput {
+  amount:          number
+  pos_number:      number
+  name:            string
+  productCategory: ProductCategory
+  design:          string
+  color:           string
+  shirtSize:       ShirtSize
+  description?:    string
+}
 
-  while (!createdOrder) {
-    const newOrderNumber = `${prefix}${counter}`
+/* ---------- Order anlegen ---------- */
+export async function createOrder(
+  customerId: string,
+  positions: PositionInput[],
+) {
+  // fortlaufende Nummer YY_N
+  const yearPrefix = new Date().getFullYear().toString().slice(2) + '_'
+  let sequence = 1
+  let order: { id: string; orderNumber: string } | null = null
 
+  while (!order) {
     try {
-      createdOrder = await prisma.order.create({
+      order = await prisma.order.create({
         data: {
           id: randomUUID(),
-          orderNumber: newOrderNumber,
-          customer: {
-            connect: { id: customerId },
-          },
+          orderNumber: yearPrefix + sequence,
+          customer: { connect: { id: customerId } },
           deletedAt: null,
         },
       })
-    } catch (error: any) {
-      // Prisma unique constraint violation: orderNumber schon vorhanden
-      if (error.code === 'P2002' && error.meta?.target?.includes('orderNumber')) {
-        counter++
+    } catch (e: any) {
+      if (e.code === 'P2002' && e.meta?.target?.includes('orderNumber')) {
+        sequence++
         continue
       }
-      throw error // bei anderen Fehlern abbrechen
+      throw e
     }
   }
 
-  return createdOrder
+  const createdPositions = await Promise.all(
+    positions.map((p) =>
+      createPosition(
+        order!.id,
+        p.amount,
+        p.pos_number,
+        p.name,
+        p.productCategory,
+        p.design,
+        p.color,
+        p.shirtSize,
+        p.description,
+      ),
+    ),
+  )
+
+  return { id: order!.id, orderNumber: order!.orderNumber, positions: createdPositions }
 }
 
-export async function getOrderById(orderId: string) {
-  return prisma.order.findUnique({
-    where: { id: orderId },
-  })
-}
+/* ---------- Abfragen ---------- */
+export const getOrderById = (id: string) =>
+  prisma.order.findUnique({ where: { id }, include: { positions: true } })
 
-export async function getOrdersByCustomer(customerId: string) {
-  return prisma.order.findMany({
-    where: { customerId },
-  })
-}
+export const getOrdersByCustomer = (customerId: string) =>
+  prisma.order.findMany({ where: { customerId }, include: { positions: true } })
 
-export async function getAllOrders() {
-  return prisma.order.findMany()
-}
+export const getAllOrders = () =>
+  prisma.order.findMany({ include: { positions: true } })

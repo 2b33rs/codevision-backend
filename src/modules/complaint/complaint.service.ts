@@ -2,54 +2,58 @@ import { prisma } from '../../plugins/prisma'
 import { randomUUID } from 'crypto'
 import { $Enums } from '../../../generated/prisma'
 import { updatePositionStatusByBusinessKey } from '../position/position.service'
-import COMPLAINT_REASON = $Enums.COMPLAINT_REASON
-import ComplaintKind = $Enums.ComplaintKind
+
+type ComplaintReason = $Enums.ComplaintReason
+type ComplaintKind   = $Enums.ComplaintKind
 
 export async function createComplaint(input: {
   positionId: string
-  Reason: COMPLAINT_REASON
+  ComplaintReason: ComplaintReason
   ComplaintKind: ComplaintKind
+  RestartProcess: boolean
 }) {
   const complaint = await prisma.complaint.create({
     data: {
       id: randomUUID(),
       positionId: input.positionId,
-      Reason: input.Reason,
+      ComplaintReason: input.ComplaintReason,
       ComplaintKind: input.ComplaintKind,
+      RestartProcess: input.RestartProcess,
     },
   })
 
-  if (input.Reason !== 'OTHER') {
-    const position = await prisma.position.findUnique({
-      where: { id: input.positionId },
-      include: { order: true },
-    })
+  const position = await prisma.position.findUnique({
+    where: { id: input.positionId },
+    include: { order: true },
+  })
 
-    if (!position) throw new Error('Position not found')
+  if (!position) throw new Error('Position not found')
 
-    const compositeId = `${position.order.orderNumber}.${position.pos_number}`
+  const compositeId = `${position.order.orderNumber}.${position.pos_number}`
+
+  if (input.RestartProcess === true && input.ComplaintReason !== 'OTHER') {
     await updatePositionStatusByBusinessKey(compositeId, 'OPEN')
+  }
+
+  if (input.RestartProcess === false) {
+    await updatePositionStatusByBusinessKey(compositeId, 'CANCELLED')
   }
 
   return complaint
 }
 
-export async function getComplaintsByPosition(positionId: string) {
-  return prisma.complaint.findMany({ where: { positionId } })
-}
+export const getComplaintsByPosition = (positionId: string) =>
+  prisma.complaint.findMany({ where: { positionId } })
 
-export async function getComplaintsByOrder(orderId: string) {
-  return prisma.complaint.findMany({
+export const getComplaintsByOrder = (orderId: string) =>
+  prisma.complaint.findMany({
     where: { position: { orderId } },
   })
-}
 
-export async function getComplaintsByCustomer(customerId: string) {
-  return prisma.complaint.findMany({
+export const getComplaintsByCustomer = (customerId: string) =>
+  prisma.complaint.findMany({
     where: { position: { order: { customerId } } },
   })
-}
 
-export async function getAllComplaints() {
-  return prisma.complaint.findMany()
-}
+export const getAllComplaints = () =>
+  prisma.complaint.findMany()

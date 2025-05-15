@@ -7,23 +7,11 @@ import {
   getComplaintsByOrder,
   getComplaintsByPosition,
 } from './complaint.service'
-import { zodToJsonSchema } from 'zod-to-json-schema'
-
-const complaintPostSchema = z.object({
-  positionId: z.string().uuid(),
-  Reason: z.enum([
-    'WRONG_SIZE', 'WRONG_COLOR', 'PRINT_INCORRECT', 'PRINT_OFF_CENTER',
-    'DAMAGED_ITEM', 'STAINED', 'LATE_DELIVERY', 'WRONG_PRODUCT',
-    'MISSING_ITEM', 'BAD_QUALITY', 'NOT_AS_DESCRIBED', 'OTHER',
-  ]),
-  ComplaintKind: z.enum(['INTERN', 'EXTERN']),
-})
-
-const complaintQuerySchema = z.object({
-  positionId: z.string().uuid().optional(),
-  orderId: z.string().uuid().optional(),
-  customerId: z.string().uuid().optional(),
-})
+import {
+  complaintSchemas,
+  complaintPostZ,
+  complaintQueryZ,
+} from './complaint.schema'
 
 export default async function complaintRoutes(fastify: FastifyInstance) {
   fastify.get('/', {
@@ -31,11 +19,11 @@ export default async function complaintRoutes(fastify: FastifyInstance) {
       tags: ['Complaint'],
       summary: 'Get complaints',
       description: 'Returns complaints, filtered by positionId, orderId or customerId',
-      querystring: zodToJsonSchema(complaintQuerySchema),
+      querystring: complaintSchemas.queryGet,
     },
     handler: async (request, reply) => {
       try {
-        const query = complaintQuerySchema.parse(request.query)
+        const query = complaintQueryZ.parse(request.query)
 
         if (query.positionId)
           return reply.send(await getComplaintsByPosition(query.positionId))
@@ -59,11 +47,11 @@ export default async function complaintRoutes(fastify: FastifyInstance) {
       tags: ['Complaint'],
       summary: 'Create complaint',
       description: 'Creates a new complaint for a given position',
-      body: zodToJsonSchema(complaintPostSchema),
+      body: complaintSchemas.bodyPost,
     },
     handler: async (request, reply) => {
       try {
-        const data = complaintPostSchema.parse(request.body)
+        const data = complaintPostZ.parse(request.body)
         const result = await createComplaint(data)
         return reply.send(result)
       } catch (err) {

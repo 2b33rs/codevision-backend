@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker'
 import {
   $Enums,
-  COMPLAINT_REASON,
+  ComplaintReason,
   ComplaintKind,
   ProductCategory,
 } from '../generated/prisma'
@@ -12,7 +12,7 @@ import ShirtSize = $Enums.ShirtSize
 async function main() {
   const sizes = Object.values(ShirtSize)
   const statuses = Object.values(POSITION_STATUS)
-  const reasons = Object.values(COMPLAINT_REASON)
+  const reasons = Object.values(ComplaintReason)
   const kinds = Object.values(ComplaintKind)
 
   for (let i = 0; i < 10; i++) {
@@ -37,6 +37,9 @@ async function main() {
 
       const posCount = faker.number.int({ min: 1, max: 4 })
       for (let k = 0; k < posCount; k++) {
+        // Erstelle zufällig eine Complaint oder lasse sie weg
+        const hasComplaint = faker.datatype.boolean()
+
         await prisma.position.create({
           data: {
             orderId: order.id,
@@ -51,14 +54,15 @@ async function main() {
             shirtSize: faker.helpers.arrayElement(sizes),
             prodCategory: ProductCategory.T_SHIRT,
             Status: faker.helpers.arrayElement(statuses),
-            complaints: {
-              create: faker.datatype.boolean()
-                ? {
-                    Reason: faker.helpers.arrayElement(reasons),
-                    ComplaintKind: faker.helpers.arrayElement(kinds),
-                  }
-                : undefined,
-            },
+            ...(hasComplaint && {
+              complaints: {
+                create: {
+                  ComplaintReason: faker.helpers.arrayElement(reasons),
+                  ComplaintKind: faker.helpers.arrayElement(kinds),
+                  RestartProcess: faker.datatype.boolean(),
+                },
+              },
+            }),
           },
         })
       }
