@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker'
 import {
   $Enums,
-  COMPLAINT_REASON,
+  ComplaintReason,
   ComplaintKind,
   ProductCategory,
 } from '../generated/prisma'
@@ -12,8 +12,12 @@ import ShirtSize = $Enums.ShirtSize
 async function main() {
   const sizes = Object.values(ShirtSize)
   const statuses = Object.values(POSITION_STATUS)
-  const reasons = Object.values(COMPLAINT_REASON)
+  const reasons = Object.values(ComplaintReason)
   const kinds = Object.values(ComplaintKind)
+
+  // Aktuelles Jahr als vierstellig (z.B. "2024")
+  const yearPrefix = new Date().getFullYear().toString() // "2024"
+  let orderSequence = 1 // fortlaufende Nummer (pro Jahr)
 
   for (let i = 0; i < 10; i++) {
     const customer = await prisma.customer.create({
@@ -31,12 +35,23 @@ async function main() {
 
     const orderCount = faker.number.int({ min: 1, max: 5 })
     for (let j = 0; j < orderCount; j++) {
+      // Achtstelliges Ordernummernformat YYYYNNNN (z.B. 20240001)
+      const orderNumber = `${yearPrefix}${orderSequence.toString().padStart(4, '0')}`
+      orderSequence++
+
       const order = await prisma.order.create({
-        data: { customerId: customer.id },
+        data: {
+          customerId: customer.id,
+          orderNumber,
+          deletedAt: null,
+        },
       })
 
       const posCount = faker.number.int({ min: 1, max: 4 })
       for (let k = 0; k < posCount; k++) {
+        // Erstelle zufällig eine Complaint oder lasse sie weg
+        const hasComplaint = faker.datatype.boolean()
+
         await prisma.position.create({
           data: {
             orderId: order.id,
@@ -47,18 +62,19 @@ async function main() {
             design: faker.lorem.word(),
             color: [0, 0, 0, 0]
               .map(() => faker.number.int({ min: 0, max: 100 }))
-              .join(','),
+              .join(','), // Falls du echtes CMYK möchtest, ggf. "cmyk(25%,...)"!
             shirtSize: faker.helpers.arrayElement(sizes),
             prodCategory: ProductCategory.T_SHIRT,
             Status: faker.helpers.arrayElement(statuses),
-            complaints: {
-              create: faker.datatype.boolean()
-                ? {
-                    Reason: faker.helpers.arrayElement(reasons),
-                    ComplaintKind: faker.helpers.arrayElement(kinds),
-                  }
-                : undefined,
-            },
+            ...(hasComplaint && {
+              complaints: {
+                create: {
+                  ComplaintReason: faker.helpers.arrayElement(reasons),
+                  ComplaintKind: faker.helpers.arrayElement(kinds),
+                  RestartProcess: faker.datatype.boolean(),
+                },
+              },
+            }),
           },
         })
       }
@@ -71,7 +87,7 @@ async function main() {
       minAmount: faker.number.int({ min: 1, max: 20 }),
       color: [0, 0, 0, 0]
         .map(() => faker.number.int({ min: 0, max: 100 }))
-        .join(','),
+        .join(','), // Gleiches hier: ggf. cmyk-String
       shirtSize: faker.helpers.arrayElement(sizes),
       productCategory: ProductCategory.T_SHIRT,
     })),

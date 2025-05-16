@@ -4,6 +4,9 @@ import POSITION_STATUS = $Enums.POSITION_STATUS
 import ProductCategory = $Enums.ProductCategory
 import ShirtSize = $Enums.ShirtSize
 
+/**
+ * Aktualisiert den Status einer Position über den zusammengesetzten Geschäftsschlüssel.
+ */
 export async function updatePositionStatusByBusinessKey(
   compositeId: string,
   status: POSITION_STATUS,
@@ -27,8 +30,9 @@ export async function updatePositionStatusByBusinessKey(
   })
 }
 
-//Create new position
-// This function creates a new position in the database
+/**
+ * Legt eine neue Position an.
+ */
 export async function createPosition(
   orderId: string,
   amount: number,
@@ -49,7 +53,7 @@ export async function createPosition(
       name,
       prodCategory,
       design,
-      //color,
+      color,                  // neu: Farbfeld
       shirtSize,
       Status: POSITION_STATUS.OPEN,
     },

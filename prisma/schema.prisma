@@ -35,8 +35,8 @@ model Order {
   //
   seq         Int        @default(autoincrement())
   orderNumber String     @default(dbgenerated()) @db.VarChar(8)
-  customer    Customer   @relation(fields: [customerId], references: [id])
-  customerId  String
+  customer    Customer?  @relation(fields: [customerId], references: [id]) //bearbeitet
+  customerId  String?    //bearbeitet
   positions   Position[]
 }
 
@@ -74,19 +74,21 @@ model StandardProduct {
   shirtSize       ShirtSize?
   productCategory ProductCategory
   minAmount       Int
+  currentStock    Int             @default(0)
 }
 
 model Complaint {
-  id            String        @id @default(uuid())
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  deletedAt     DateTime?
+  id                String          @id @default(uuid())
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  deletedAt         DateTime?
   // Fremdschlüssel
-  position      Position      @relation(fields: [positionId], references: [id])
-  positionId    String
+  position          Position        @relation(fields: [positionId], references: [id])
+  positionId        String
   //
-  Reason        String
-  ComplaintKind ComplaintKind
+  ComplaintReason   ComplaintReason //bearbeitet
+  ComplaintKind     ComplaintKind
+  RestartProcess    Boolean         //bearbeitet
 }
 
 enum POSITION_STATUS {
@@ -103,7 +105,7 @@ enum POSITION_STATUS {
   CANCELLED
 }
 
-enum COMPLAINT_REASON {
+enum ComplaintReason { //bearbeitet
   WRONG_SIZE
   WRONG_COLOR
   PRINT_INCORRECT

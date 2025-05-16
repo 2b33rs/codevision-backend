@@ -21,6 +21,7 @@ export const createProductZ = standardProductZ.omit({
   createdAt: true,
   updatedAt: true,
   deletedAt: true,
+  currentStock: true
 })
 
 export const updateProductZ = createProductZ.partial()

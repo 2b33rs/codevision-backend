@@ -1,53 +1,101 @@
 import { prisma } from '../../plugins/prisma'
 import { randomUUID } from 'crypto'
+import { createPosition } from '../position/position.service'
+import { $Enums } from '../../../generated/prisma'
+import { getInventoryCount, createProductionOrder } from '../../external/inventory.service'
 
-export async function createOrder(customerId: string) {
+type ProductCategory = $Enums.ProductCategory
+type ShirtSize      = $Enums.ShirtSize
+
+export interface PositionInput {
+  amount:          number
+  pos_number:      number
+  name:            string
+  productCategory: ProductCategory
+  design:          string
+  color:           string
+  shirtSize:       ShirtSize
+  description?:    string
+}
+
+export async function createOrder(
+  customerId: string,
+  positions: PositionInput[],
+) {
+  // 1. Jahr holen
   const now = new Date()
-  const yearShort = now.getFullYear().toString().slice(2)
-  const prefix = `${yearShort}_`
+  const year = now.getFullYear()
+  // 2. Orders für dieses Jahr zählen
+  const countThisYear = await prisma.order.count({
+    where: {
+      createdAt: {
+        gte: new Date(`${year}-01-01T00:00:00.000Z`),
+        lt: new Date(`${year + 1}-01-01T00:00:00.000Z`),
+      },
+    },
+  })
+  // 3. Ordernummer bauen
+  const orderNumber = `${year}${(countThisYear + 1).toString().padStart(4, '0')}` // z.B. 20240001
 
-  let counter = 1
-  let createdOrder = null
+  // 4. Order speichern
+  const order = await prisma.order.create({
+    data: {
+      id: randomUUID(),
+      orderNumber,
+      customer: { connect: { id: customerId } },
+      deletedAt: null,
+    },
+  })
 
-  while (!createdOrder) {
-    const newOrderNumber = `${prefix}${counter}`
+  // Positionen anlegen
+  const createdPositions = await Promise.all(
+    positions.map((p) =>
+      createPosition(
+        order.id,
+        p.amount,
+        p.pos_number,
+        p.name,
+        p.productCategory,
+        p.design,
+        p.color,
+        p.shirtSize,
+        p.description,
+      ),
+    ),
+  )
 
-    try {
-      createdOrder = await prisma.order.create({
-        data: {
-          id: randomUUID(),
-          orderNumber: newOrderNumber,
-          customer: {
-            connect: { id: customerId },
-          },
-          deletedAt: null,
-        },
+  // Inventory-Abgleich und Produktionsauftrag pro Position
+  await Promise.all(
+    createdPositions.map(async (pos) => {
+      const currentStock = await getInventoryCount({
+        color: pos.color,
+        shirtSize: pos.shirtSize,
+        design: pos.design,
       })
-    } catch (error: any) {
-      // Prisma unique constraint violation: orderNumber schon vorhanden
-      if (error.code === 'P2002' && error.meta?.target?.includes('orderNumber')) {
-        counter++
-        continue
+
+      const needed = pos.amount
+      const toProduce = Math.max(0, needed - currentStock)
+
+      if (toProduce > 0) {
+        await createProductionOrder({
+          productId: pos.id,
+          amount: toProduce,
+          color: pos.color,
+          shirtSize: pos.shirtSize,
+          design: pos.design,
+        })
       }
-      throw error // bei anderen Fehlern abbrechen
-    }
-  }
+    })
+  )
 
-  return createdOrder
+  return { id: order.id, orderNumber: order.orderNumber, positions: createdPositions }
 }
 
-export async function getOrderById(orderId: string) {
-  return prisma.order.findUnique({
-    where: { id: orderId },
-  })
-}
+export const getOrderById = (id: string) =>
+  prisma.order.findUnique({ where: { id }, include: { positions: true } })
 
-export async function getOrdersByCustomer(customerId: string) {
-  return prisma.order.findMany({
-    where: { customerId },
-  })
-}
+export const getOrdersByCustomer = (customerId: string) =>
+  prisma.order.findMany({ where: { customerId }, include: { positions: true } })
 
-export async function getAllOrders() {
-  return prisma.order.findMany()
-}
+export const getAllOrders = () =>
+  prisma.order.findMany({ include: { positions: true } })
