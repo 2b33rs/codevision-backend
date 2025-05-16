@@ -60,9 +60,9 @@ async function main() {
             description: faker.commerce.productDescription(),
             amount: faker.number.int({ min: 1, max: 10 }),
             design: faker.lorem.word(),
-            color: [0, 0, 0, 0]
-              .map(() => faker.number.int({ min: 0, max: 100 }))
-              .join(','), // Falls du echtes CMYK möchtest, ggf. "cmyk(25%,...)"!
+            color: `cmyk(${[0, 0, 0, 0]
+              .map(() => faker.number.int({ min: 0, max: 100 }) + '%')
+              .join(', ')})`,
             shirtSize: faker.helpers.arrayElement(sizes),
             prodCategory: ProductCategory.T_SHIRT,
             Status: faker.helpers.arrayElement(statuses),
@@ -85,9 +85,9 @@ async function main() {
     data: Array.from({ length: 5 }).map(() => ({
       name: faker.commerce.productName(),
       minAmount: faker.number.int({ min: 1, max: 20 }),
-      color: [0, 0, 0, 0]
-        .map(() => faker.number.int({ min: 0, max: 100 }))
-        .join(','), // Gleiches hier: ggf. cmyk-String
+      color: `cmyk(${[0, 0, 0, 0]
+        .map(() => faker.number.int({ min: 0, max: 100 }) + '%')
+        .join(', ')})`,
       shirtSize: faker.helpers.arrayElement(sizes),
       productCategory: ProductCategory.T_SHIRT,
     })),
