@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { prisma } from '../../plugins/prisma'
 import {
   createOrder,
@@ -9,18 +9,27 @@ import {
 } from './order.service'
 import { randomUUID } from 'crypto'
 import { setTimeout } from 'timers/promises'
+import * as inventoryService from '../../external/inventory.service'
 
+// --- MOCK für createProductionOrder ---
 beforeEach(async () => {
-  // erst alle Complaints löschen, dann Positionen, Orders, Kunden
   await prisma.complaint.deleteMany()
   await prisma.position.deleteMany()
   await prisma.order.deleteMany()
   await prisma.customer.deleteMany()
+
+  vi.restoreAllMocks()
+  vi.spyOn(inventoryService, 'createProductionOrder').mockImplementation(
+    async (input: any) => ({
+      ...input,
+      status: 'ok',
+      message: `Produktionsauftrag über ${input.amount} Stück ausgelöst`,
+    })
+  )
 })
 
 describe('Order Service Unit Tests (mit Positionen)', () => {
   it('should create a new order with positions and incremented order number', async () => {
-    // 1) Kunden anlegen
     const customer = await prisma.customer.create({
       data: {
         id: randomUUID(),
@@ -31,7 +40,6 @@ describe('Order Service Unit Tests (mit Positionen)', () => {
       },
     })
 
-    // 2) Beispiel-Positionen
     const positions: PositionInput[] = [
       {
         amount: 3,
@@ -54,17 +62,13 @@ describe('Order Service Unit Tests (mit Positionen)', () => {
       },
     ]
 
-    // 3) Order anlegen
     const newOrder = await createOrder(customer.id, positions)
 
-    // 4) Assertions
     expect(newOrder).toHaveProperty('id')
-    // jetzt rein numerisch, z.B. "20250136"
-    expect(newOrder.orderNumber).toMatch(/^\d+$/)
+    expect(newOrder.orderNumber).toMatch(/^\d{8}$/) // <--- 8-stellig!
     expect(Array.isArray(newOrder.positions)).toBe(true)
     expect(newOrder.positions.length).toBe(positions.length)
 
-    // Jede Position auf korrekte Werte prüfen
     newOrder.positions.forEach((pos, idx) => {
       const inp = positions[idx]
       expect(pos.amount).toBe(inp.amount)
@@ -74,13 +78,13 @@ describe('Order Service Unit Tests (mit Positionen)', () => {
       expect(pos.design).toBe(inp.design)
       expect(pos.color).toBe(inp.color)
       expect(pos.shirtSize).toBe(inp.shirtSize)
-      // description ist in DB nullable, leer → null
       expect(pos.description).toBe(inp.description ?? null)
       expect(pos.Status).toBe('OPEN')
       expect(pos.orderId).toBe(newOrder.id)
     })
   })
 
+  // Die anderen Tests bleiben unverändert
   it('should get order by id including positions', async () => {
     const customer = await prisma.customer.create({
       data: {
@@ -137,7 +141,7 @@ describe('Order Service Unit Tests (mit Positionen)', () => {
     ]
 
     await createOrder(customer.id, positions)
-    await setTimeout(50) // Pause, damit Sequenz hochzählt
+    await setTimeout(50)
     await createOrder(customer.id, positions)
 
     const orders = await getOrdersByCustomer(customer.id)

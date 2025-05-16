@@ -15,6 +15,10 @@ async function main() {
   const reasons = Object.values(ComplaintReason)
   const kinds = Object.values(ComplaintKind)
 
+  // Aktuelles Jahr als vierstellig (z.B. "2024")
+  const yearPrefix = new Date().getFullYear().toString() // "2024"
+  let orderSequence = 1 // fortlaufende Nummer (pro Jahr)
+
   for (let i = 0; i < 10; i++) {
     const customer = await prisma.customer.create({
       data: {
@@ -31,8 +35,16 @@ async function main() {
 
     const orderCount = faker.number.int({ min: 1, max: 5 })
     for (let j = 0; j < orderCount; j++) {
+      // Achtstelliges Ordernummernformat YYYYNNNN (z.B. 20240001)
+      const orderNumber = `${yearPrefix}${orderSequence.toString().padStart(4, '0')}`
+      orderSequence++
+
       const order = await prisma.order.create({
-        data: { customerId: customer.id },
+        data: {
+          customerId: customer.id,
+          orderNumber,
+          deletedAt: null,
+        },
       })
 
       const posCount = faker.number.int({ min: 1, max: 4 })
@@ -50,7 +62,7 @@ async function main() {
             design: faker.lorem.word(),
             color: [0, 0, 0, 0]
               .map(() => faker.number.int({ min: 0, max: 100 }))
-              .join(','),
+              .join(','), // Falls du echtes CMYK möchtest, ggf. "cmyk(25%,...)"!
             shirtSize: faker.helpers.arrayElement(sizes),
             prodCategory: ProductCategory.T_SHIRT,
             Status: faker.helpers.arrayElement(statuses),
@@ -75,7 +87,7 @@ async function main() {
       minAmount: faker.number.int({ min: 1, max: 20 }),
       color: [0, 0, 0, 0]
         .map(() => faker.number.int({ min: 0, max: 100 }))
-        .join(','),
+        .join(','), // Gleiches hier: ggf. cmyk-String
       shirtSize: faker.helpers.arrayElement(sizes),
       productCategory: ProductCategory.T_SHIRT,
     })),

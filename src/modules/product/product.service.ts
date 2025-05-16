@@ -11,9 +11,17 @@ export async function create(
   req: FastifyRequest<{ Body: CreateBody }>,
   res: FastifyReply,
 ) {
-  const product = await prisma.standardProduct.create({ data: req.body })
-  res.send(product)
+  try {
+    console.log('🧪 Create payload:', req.body) // <--- NEU
+    const product = await prisma.standardProduct.create({ data: req.body })
+    res.send(product)
+  } catch (err) {
+    console.error('❌ Create product failed:', JSON.stringify(err, null, 2))
+    res.status(500).send({ error: 'Internal Server Error' })
+  }
 }
+
+
 
 export async function read(
   req: FastifyRequest<{ Params: IdParam }>,
