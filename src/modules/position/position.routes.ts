@@ -1,13 +1,9 @@
 import { FastifyInstance } from 'fastify'
 import { zodToJsonSchema } from 'zod-to-json-schema'
+import { updatePositionStatusByBusinessKey } from './position.service'
 import {
-  createPosition,
-  updatePositionStatusByBusinessKey,
-} from './position.service'
-import {
-  positionCreateSchema,
-  positionStatusPatchSchema,
   positionParamsSchema,
+  positionStatusPatchSchema,
 } from './position.schema'
 
 export default async function positionRoutes(fastify: FastifyInstance) {
@@ -28,47 +24,11 @@ export default async function positionRoutes(fastify: FastifyInstance) {
     handler: async (request, reply) => {
       const { compositeId } = positionParamsSchema.parse(request.params)
       const { status } = positionStatusPatchSchema.parse(request.body)
-      const updated = await updatePositionStatusByBusinessKey(compositeId, status)
-      reply.send('Updated position status successfully to ' + updated.Status)
-    },
-  })
-
-  // POST
-  fastify.post('/', {
-    schema: {
-      tags: ['Position'],
-      description: 'Create a new production position',
-      body: zodToJsonSchema(positionCreateSchema),
-      response: {
-        200: {
-          // ... wie gehabt
-        },
-      },
-    },
-    handler: async (request, reply) => {
-      const {
-        orderId,
-        description,
-        amount,
-        pos_number,
-        name,
-        productCategory,
-        design,
-        color,
-        shirtSize,
-      } = positionCreateSchema.parse(request.body)
-
-      return await createPosition(
-        orderId,
-        amount,
-        pos_number,
-        name,
-        productCategory,
-        design,
-        color,
-        shirtSize,
-        description ?? '',
+      const updated = await updatePositionStatusByBusinessKey(
+        compositeId,
+        status,
       )
+      reply.send('Updated position status successfully to ' + updated.Status)
     },
   })
 }

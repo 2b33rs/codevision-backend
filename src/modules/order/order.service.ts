@@ -3,8 +3,8 @@ import { randomUUID } from 'crypto'
 import { createPosition } from '../position/position.service'
 import { $Enums } from '../../../generated/prisma'
 import {
-  getInventoryCount,
   createProductionOrder,
+  getInventoryCount,
 } from '../../external/inventory.service'
 
 type ProductCategory = $Enums.ProductCategory
@@ -22,7 +22,10 @@ export interface PositionInput {
   standardProductId?: string
 }
 
-export async function createOrder(customerId: string, positions: PositionInput[]) {
+export async function createOrder(
+  customerId: string,
+  positions: PositionInput[],
+) {
   try {
     console.log('📝 Starte Auftragserstellung für Customer:', customerId)
 
@@ -52,7 +55,10 @@ export async function createOrder(customerId: string, positions: PositionInput[]
 
     const createdPositions = await Promise.all(
       positions.map((p) => {
-        console.log(`📌 Position ${p.pos_number} mit Standardprodukt:`, p.standardProductId)
+        console.log(
+          `📌 Position ${p.pos_number} mit Standardprodukt:`,
+          p.standardProductId,
+        )
         return createPosition(
           order.id,
           p.amount,
@@ -78,7 +84,9 @@ export async function createOrder(customerId: string, positions: PositionInput[]
 
         const needed = pos.amount
         const toProduce = Math.max(0, needed - currentStock)
-        console.log(`🧮 Position ${pos.id} braucht ${needed}, Lagerbestand: ${currentStock}, zu produzieren: ${toProduce}`)
+        console.log(
+          `🧮 Position ${pos.id} braucht ${needed}, Lagerbestand: ${currentStock}, zu produzieren: ${toProduce}`,
+        )
 
         if (toProduce > 0) {
           console.log(`🏭 Produktionsauftrag für Position-ID ${pos.id}`)
@@ -91,7 +99,9 @@ export async function createOrder(customerId: string, positions: PositionInput[]
           })
 
           if (pos.standardProductId) {
-            console.log(`🔄 Update amountInProduction für StandardProduct ${pos.standardProductId}`)
+            console.log(
+              `🔄 Update amountInProduction für StandardProduct ${pos.standardProductId}`,
+            )
             await prisma.standardProduct.update({
               where: { id: pos.standardProductId },
               data: {
@@ -119,15 +129,18 @@ export async function createOrder(customerId: string, positions: PositionInput[]
   }
 }
 
-
-
-
-
 export const getOrderById = (id: string) =>
   prisma.order.findUnique({ where: { id }, include: { positions: true } })
 
 export const getOrdersByCustomer = (customerId: string) =>
   prisma.order.findMany({ where: { customerId }, include: { positions: true } })
 
-export const getAllOrders = () =>
-  prisma.order.findMany({ include: { positions: true } })
+export const getAllOrders = async () => {
+  try {
+    let newVar = await prisma.order.findMany({ include: { positions: true } })
+    return newVar
+  } catch (err) {
+    console.error('❌ Fehler beim Laden der Orders:', err)
+    throw err
+  }
+}

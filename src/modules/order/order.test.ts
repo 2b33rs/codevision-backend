@@ -1,8 +1,15 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 import { prisma } from '../../plugins/prisma'
 import {
   createOrder,
-  getAllOrders,
   getOrderById,
   getOrdersByCustomer,
   PositionInput,
@@ -10,6 +17,21 @@ import {
 import { randomUUID } from 'crypto'
 import { setTimeout } from 'timers/promises'
 import * as inventoryService from '../../external/inventory.service'
+import Fastify from 'fastify'
+import { registerPlugins } from '../../plugins/register-plugins'
+import { registerModules } from '../register-modules'
+
+let app: ReturnType<typeof Fastify>
+
+beforeAll(async () => {
+  app = Fastify()
+  await registerPlugins(app)
+  await registerModules(app)
+})
+
+afterAll(async () => {
+  await app.close()
+})
 
 // --- MOCK für createProductionOrder ---
 beforeEach(async () => {
@@ -24,7 +46,7 @@ beforeEach(async () => {
       ...input,
       status: 'ok',
       message: `Produktionsauftrag über ${input.amount} Stück ausgelöst`,
-    })
+    }),
   )
 })
 
@@ -154,14 +176,14 @@ describe('Order Service Unit Tests (mit Positionen)', () => {
     })
   })
 
-  it('should get all orders in system', async () => {
+  it('should get all orders in system via HTTP endpoint', async () => {
     const customer = await prisma.customer.create({
       data: {
         id: randomUUID(),
-        name: 'All Orders',
-        email: `all-${Date.now()}@mail.com`,
-        phone: '99999',
-        customerType: 'WEBSHOP',
+        name: 'Many Orders',
+        email: `multi-${Date.now()}@mail.com`,
+        phone: '67890',
+        customerType: 'BUSINESS',
       },
     })
 
@@ -169,11 +191,11 @@ describe('Order Service Unit Tests (mit Positionen)', () => {
       {
         amount: 1,
         pos_number: 1,
-        name: 'Item1',
+        name: 'T-Shirt A',
         productCategory: 'T_SHIRT',
-        design: 'DesignX',
+        design: 'Design1',
         color: 'cmyk(0%,0%,0%,0%)',
-        shirtSize: 'XL',
+        shirtSize: 'S',
       },
     ]
 
@@ -181,10 +203,18 @@ describe('Order Service Unit Tests (mit Positionen)', () => {
     await setTimeout(50)
     await createOrder(customer.id, positions)
 
-    const orders = await getAllOrders()
-    expect(Array.isArray(orders)).toBe(true)
-    expect(orders.length).toBeGreaterThanOrEqual(2)
-    orders.forEach((order) => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/order',
+      headers: {
+        accept: 'application/json',
+      },
+    })
+    expect(response.statusCode).toBe(200)
+    const body = await response.json()
+    expect(Array.isArray(body)).toBe(true)
+    expect(body.length).toBeGreaterThanOrEqual(2)
+    body.forEach((order: any) => {
       expect(Array.isArray(order.positions)).toBe(true)
     })
   })
