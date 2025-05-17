@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { prisma } from '../../plugins/prisma'
-import { createPosition, updatePositionStatusByBusinessKey } from './position.service'
+import {
+  createPosition,
+  updatePositionStatusByBusinessKey,
+} from './position.service'
 import { randomUUID } from 'crypto'
 import { $Enums } from '../../../generated/prisma'
 
@@ -10,15 +13,14 @@ type POSITION_STATUS = $Enums.POSITION_STATUS
 
 describe('Position Service Unit Tests', () => {
   beforeEach(async () => {
-    // Reihenfolge wichtig wegen FKs
     await prisma.complaint.deleteMany()
     await prisma.position.deleteMany()
     await prisma.order.deleteMany()
     await prisma.customer.deleteMany()
+    await prisma.standardProduct.deleteMany()
   })
 
   it('should create a new position with valid data', async () => {
-    // Erstmal Customer & Order anlegen
     const customer = await prisma.customer.create({
       data: {
         id: randomUUID(),
@@ -28,11 +30,12 @@ describe('Position Service Unit Tests', () => {
         customerType: 'WEBSHOP',
       },
     })
+
     const order = await prisma.order.create({
       data: {
         id: randomUUID(),
         customerId: customer.id,
-        orderNumber: '20240001', // Muss mit deinem Order-Pattern übereinstimmen
+        orderNumber: '20240001',
       },
     })
 
@@ -59,7 +62,6 @@ describe('Position Service Unit Tests', () => {
   })
 
   it('should update the status of a position by composite key', async () => {
-    // Setup: Customer + Order + Position
     const customer = await prisma.customer.create({
       data: {
         id: randomUUID(),
@@ -69,6 +71,7 @@ describe('Position Service Unit Tests', () => {
         customerType: 'WEBSHOP',
       },
     })
+
     const order = await prisma.order.create({
       data: {
         id: randomUUID(),
@@ -77,23 +80,42 @@ describe('Position Service Unit Tests', () => {
       },
     })
 
-    const pos = await createPosition(
-      order.id,
-      3,
-      2,
-      'Update-Shirt',
-      'T_SHIRT',
-      'UpdateDesign',
-      'cmyk(5%,5%,5%,5%)',
-      'L'
-    )
+    const product = await prisma.standardProduct.create({
+      data: {
+        name: 'Produkt für Status-Test',
+        productCategory: 'T_SHIRT',
+        minAmount: 1,
+        color: 'cmyk(1%,1%,1%,1%)',
+        shirtSize: 'M',
+        amountInProduction: 5,
+      },
+    })
 
-    // Composite Key: orderNumber.pos_number
+    const pos = await prisma.position.create({
+      data: {
+        orderId: order.id,
+        pos_number: 2,
+        amount: 3,
+        name: 'Status-Test-Posi',
+        productCategory: 'T_SHIRT',
+        design: 'DesignA',
+        color: 'cmyk(1%,1%,1%,1%)',
+        shirtSize: 'M',
+        Status: 'IN_PRINTING',
+        standardProductId: product.id,
+      },
+    })
+
     const compositeId = `${order.orderNumber}.${pos.pos_number}`
 
-    const updated = await updatePositionStatusByBusinessKey(compositeId, 'SHIPPED')
+    const updated = await updatePositionStatusByBusinessKey(compositeId, 'PRODUCTION_COMPLETED')
 
-    expect(updated.Status).toBe('SHIPPED')
-    expect(updated.id).toBe(pos.id)
+    expect(updated.Status).toBe('PRODUCTION_COMPLETED')
+
+    const productAfter = await prisma.standardProduct.findUniqueOrThrow({
+      where: { id: product.id },
+    })
+
+    expect(productAfter.amountInProduction).toBe(2)
   })
 })
