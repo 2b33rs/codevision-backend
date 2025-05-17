@@ -1,22 +1,11 @@
 // src/modules/position/position.schema.ts
 import { z } from 'zod'
+import { $Enums, POSITION_STATUS } from '../../../generated/prisma'
 
 // Enum-Definitionen ggf. importieren, z.B. von $Enums oder manuell abbilden:
 const ShirtSizeEnum = z.enum(['S', 'M', 'L', 'XL'])
-const ProductCategoryEnum = z.enum(['T_SHIRT'])
-const PositionStatusEnum = z.enum([
-  'OPEN',
-  'FINISHED_MATERIAL_REQUESTED',
-  'PRODUCTION_NOTIFIED',
-  'IN_DYEING',
-  'IN_PRINTING',
-  'PRODUCTION_COMPLETED',
-  'FINISHED_MATERIAL_READY_FOR_PICKUP',
-  'READY_FOR_SHIPMENT',
-  'SHIPPED',
-  'COMPLETED',
-  'CANCELLED',
-])
+const ProductCategoryEnum = z.nativeEnum($Enums.ProductCategory)
+const PositionStatusEnum = z.enum(POSITION_STATUS)
 
 export const positionCreateSchema = z.object({
   orderId: z.string(),
@@ -30,7 +19,9 @@ export const positionCreateSchema = z.object({
     .string()
     .refine(
       (s) =>
-        /^cmyk\(\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*\)$/.test(s) &&
+        /^cmyk\(\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*\)$/.test(
+          s,
+        ) &&
         [...s.matchAll(/\d{1,3}/g)].every(
           (m) => Number(m[0]) >= 0 && Number(m[0]) <= 100,
         ),

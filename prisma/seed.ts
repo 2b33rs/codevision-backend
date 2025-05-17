@@ -1,17 +1,21 @@
 import { faker } from '@faker-js/faker'
 import {
   $Enums,
-  ComplaintReason,
   ComplaintKind,
+  ComplaintReason,
   ProductCategory,
 } from '../generated/prisma'
 import { prisma } from '../src/plugins/prisma'
-import POSITION_STATUS = $Enums.POSITION_STATUS
 import ShirtSize = $Enums.ShirtSize
 
 async function main() {
   const sizes = Object.values(ShirtSize)
-  const statuses = Object.values(POSITION_STATUS)
+  const statuses: $Enums.POSITION_STATUS[] = [
+    'IN_PROGRESS',
+    'READY_FOR_SHIPMENT',
+    'COMPLETED',
+    'CANCELLED',
+  ]
   const reasons = Object.values(ComplaintReason)
   const kinds = Object.values(ComplaintKind)
 
@@ -24,7 +28,9 @@ async function main() {
     data: Array.from({ length: 5 }).map(() => ({
       name: faker.commerce.productName(),
       minAmount: faker.number.int({ min: 1, max: 20 }),
-      color: [0, 0, 0, 0].map(() => faker.number.int({ min: 0, max: 100 })).join(','),
+      color: [0, 0, 0, 0]
+        .map(() => faker.number.int({ min: 0, max: 100 }))
+        .join(','),
       shirtSize: faker.helpers.arrayElement(sizes),
       productCategory: ProductCategory.T_SHIRT,
       amountInProduction: faker.number.int({ min: 0, max: 50 }),

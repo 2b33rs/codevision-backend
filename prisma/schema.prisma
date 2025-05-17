@@ -36,78 +36,71 @@ model Order {
   seq         Int        @default(autoincrement())
   orderNumber String     @default(dbgenerated()) @db.VarChar(8)
   customer    Customer?  @relation(fields: [customerId], references: [id]) //bearbeitet
-  customerId  String?    //bearbeitet
+  customerId  String? //bearbeitet
   positions   Position[]
 }
 
 model Position {
-  id           String          @id @unique @default(uuid())
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  deletedAt    DateTime?
-  // Fremdschlüssel
-  order        Order           @relation(fields: [orderId], references: [id])
-  orderId      String
-  complaints   Complaint[]
-  standardProductId String?
-  // Positionsfelder
-  pos_number   Int
-  description  String?
-  Status       POSITION_STATUS @default(OPEN)
-  amount       Int
-  // pro T-Shirt
-  name         String
-  color        String?
-  shirtSize    ShirtSize?
-  productCategory ProductCategory
-  design       String
-}
-
-// fürs Frontend
-model StandardProduct {
-  id              String          @id @default(uuid())
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  deletedAt       DateTime?
-  //
-  name            String
-  color           String?
-  shirtSize       ShirtSize?
-  productCategory ProductCategory
-  minAmount       Int
-  currentStock    Int             @default(0)
-  amountInProduction Int @default(0)
-}
-
-model Complaint {
-  id                String          @id @default(uuid())
+  id                String          @id @unique @default(uuid())
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
   deletedAt         DateTime?
   // Fremdschlüssel
-  position          Position        @relation(fields: [positionId], references: [id])
-  positionId        String
+  order             Order           @relation(fields: [orderId], references: [id])
+  orderId           String
+  complaints        Complaint[]
+  standardProductId String?
+  // Positionsfelder
+  pos_number        Int
+  description       String?
+  Status            POSITION_STATUS @default(IN_PROGRESS)
+  amount            Int
+  // pro T-Shirt
+  name              String
+  color             String?
+  shirtSize         ShirtSize?
+  productCategory   ProductCategory
+  design            String
+}
+
+// fürs Frontend
+model StandardProduct {
+  id                 String          @id @default(uuid())
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  deletedAt          DateTime?
   //
-  ComplaintReason   ComplaintReason //bearbeitet
-  ComplaintKind     ComplaintKind
-  RestartProcess    Boolean         //bearbeitet
+  name               String
+  color              String?
+  shirtSize          ShirtSize?
+  productCategory    ProductCategory
+  minAmount          Int
+  currentStock       Int             @default(0)
+  amountInProduction Int             @default(0)
+}
+
+model Complaint {
+  id              String          @id @default(uuid())
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?
+  // Fremdschlüssel
+  position        Position        @relation(fields: [positionId], references: [id])
+  positionId      String
+  //
+  ComplaintReason ComplaintReason //bearbeitet
+  ComplaintKind   ComplaintKind
+  RestartProcess  Boolean //bearbeitet
 }
 
 enum POSITION_STATUS {
-  OPEN
-  FINISHED_MATERIAL_REQUESTED
-  PRODUCTION_NOTIFIED
-  IN_DYEING
-  IN_PRINTING
-  PRODUCTION_COMPLETED
-  FINISHED_MATERIAL_READY_FOR_PICKUP
+  IN_PROGRESS
   READY_FOR_SHIPMENT
-  SHIPPED
   COMPLETED
   CANCELLED
 }
 
-enum ComplaintReason { //bearbeitet
+enum ComplaintReason {
   WRONG_SIZE
   WRONG_COLOR
   PRINT_INCORRECT

@@ -25,7 +25,7 @@ export async function updatePositionStatusByBusinessKey(
   if (!position) throw new Error('Position not found')
 
   // === Neue Logik: amountInProduction runterzählen, wenn Status = PRODUCTION_COMPLETED ===
-  if (status === POSITION_STATUS.PRODUCTION_COMPLETED && position.standardProductId) {
+  if (status === POSITION_STATUS.COMPLETED && position.standardProductId) {
     await prisma.standardProduct.update({
       where: { id: position.standardProductId },
       data: {
@@ -68,7 +68,7 @@ export async function createPosition(
       design,
       color,
       shirtSize,
-      Status: POSITION_STATUS.OPEN,
+      Status: POSITION_STATUS.IN_PROGRESS,
       standardProductId,
     },
   })
