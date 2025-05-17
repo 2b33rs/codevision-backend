@@ -4,24 +4,14 @@ import { $Enums } from '../../../generated/prisma'
 import { updatePositionStatusByBusinessKey } from '../position/position.service'
 
 type ComplaintReason = $Enums.ComplaintReason
-type ComplaintKind   = $Enums.ComplaintKind
+type ComplaintKind = $Enums.ComplaintKind
 
 export async function createComplaint(input: {
   positionId: string
   ComplaintReason: ComplaintReason
   ComplaintKind: ComplaintKind
-  RestartProcess: boolean
+  createNewOrder: boolean
 }) {
-  const complaint = await prisma.complaint.create({
-    data: {
-      id: randomUUID(),
-      positionId: input.positionId,
-      ComplaintReason: input.ComplaintReason,
-      ComplaintKind: input.ComplaintKind,
-      RestartProcess: input.RestartProcess,
-    },
-  })
-
   const position = await prisma.position.findUnique({
     where: { id: input.positionId },
     include: { order: true },
@@ -31,13 +21,53 @@ export async function createComplaint(input: {
 
   const compositeId = `${position.order.orderNumber}.${position.pos_number}`
 
-  if (input.RestartProcess === true && input.ComplaintReason !== 'OTHER') {
-    await updatePositionStatusByBusinessKey(compositeId, 'OPEN')
-  }
+  let newOrderId: string | undefined = undefined
 
-  if (input.RestartProcess === false) {
+  // === Neue Order erzeugen, wenn Flag aktiv ===
+  if (input.createNewOrder === true) {
+    const newOrder = await prisma.order.create({
+      data: {
+        customerId: position.order.customerId!,
+        positions: {
+          create: [
+            {
+              pos_number: 1,
+              name: position.name,
+              amount: position.amount,
+              productCategory: position.productCategory,
+              design: position.design,
+              color: position.color,
+              shirtSize: position.shirtSize,
+              Status: 'OPEN',
+              description: position.description,
+              standardProductId: position.standardProductId,
+            },
+          ],
+        },
+      },
+    })
+
+    newOrderId = newOrder.id
+
+    if (input.ComplaintReason !== 'OTHER') {
+      await updatePositionStatusByBusinessKey(compositeId, 'OPEN')
+    }
+  } else {
+    // Wenn keine neue Order gewünscht: Storno
     await updatePositionStatusByBusinessKey(compositeId, 'CANCELLED')
   }
+
+  // === Complaint mit optionaler Verknüpfung zur neuen Order ===
+  const complaint = await prisma.complaint.create({
+    data: {
+      id: randomUUID(),
+      positionId: input.positionId,
+      ComplaintReason: input.ComplaintReason,
+      ComplaintKind: input.ComplaintKind,
+      createNewOrder: input.createNewOrder,
+      newOrderId,
+    },
+  })
 
   return complaint
 }

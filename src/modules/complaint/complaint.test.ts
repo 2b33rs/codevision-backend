@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { prisma } from '../../plugins/prisma'
-import { createComplaint, getAllComplaints, getComplaintsByCustomer, getComplaintsByOrder, getComplaintsByPosition } from './complaint.service'
+import {
+  createComplaint,
+  getAllComplaints,
+  getComplaintsByCustomer,
+  getComplaintsByOrder,
+  getComplaintsByPosition,
+} from './complaint.service'
 import { randomUUID } from 'crypto'
 
 beforeEach(async () => {
@@ -48,9 +54,9 @@ describe('Complaint Service Unit Tests', () => {
 
     const complaint = await createComplaint({
       positionId: position.id,
-      ComplaintReason: 'WRONG_PRODUCT', //bearbeitet
+      ComplaintReason: 'WRONG_PRODUCT',
       ComplaintKind: 'EXTERN',
-      RestartProcess: true, //bearbeitet
+      createNewOrder: true,
     })
 
     expect(complaint).toHaveProperty('id')
@@ -58,8 +64,8 @@ describe('Complaint Service Unit Tests', () => {
     const updatedPosition = await prisma.position.findUnique({ where: { id: position.id } })
     expect(updatedPosition?.Status).toBe('OPEN')
   })
-//bearbeitet
-  it('should create a complaint and set position status to CANCELLED when RestartProcess is false', async () => {
+
+  it('should create a complaint and set position status to CANCELLED when createNewOrder is false', async () => {
     const customer = await prisma.customer.create({
       data: {
         id: randomUUID(),
@@ -95,17 +101,68 @@ describe('Complaint Service Unit Tests', () => {
 
     const complaint = await createComplaint({
       positionId: position.id,
-      ComplaintReason: 'WRONG_COLOR', // Enum-Wert ungleich 'OTHER'
+      ComplaintReason: 'WRONG_COLOR',
       ComplaintKind: 'INTERN',
-      RestartProcess: false, // Bedingung für CANCELLED
+      createNewOrder: false,
     })
 
     expect(complaint).toHaveProperty('id')
 
     const updatedPosition = await prisma.position.findUnique({ where: { id: position.id } })
-    expect(updatedPosition?.Status).toBe('CANCELLED') // Überprüfung auf CANCELLED
+    expect(updatedPosition?.Status).toBe('CANCELLED')
   })
-//bearbeitet Ende
+
+  it('should create a new order when createNewOrder is true and link it to the complaint', async () => {
+    const customer = await prisma.customer.create({
+      data: {
+        id: randomUUID(),
+        name: 'Reorder Kunde',
+        email: `reorder-${Date.now()}@mail.com`,
+        phone: '44444',
+        customerType: 'BUSINESS',
+      },
+    })
+
+    const order = await prisma.order.create({
+      data: {
+        id: randomUUID(),
+        orderNumber: '25_996',
+        customerId: customer.id,
+        deletedAt: null,
+      },
+    })
+
+    const position = await prisma.position.create({
+      data: {
+        id: randomUUID(),
+        orderId: order.id,
+        pos_number: 11,
+        name: 'Reorder Pos',
+        amount: 3,
+        productCategory: 'T_SHIRT',
+        design: 'Reorder Design',
+        Status: 'PRODUCTION_COMPLETED',
+        shirtSize: 'L',
+      },
+    })
+
+    const complaint = await createComplaint({
+      positionId: position.id,
+      ComplaintReason: 'MISSING_ITEM',
+      ComplaintKind: 'INTERN',
+      createNewOrder: true,
+    })
+
+    expect(complaint).toHaveProperty('newOrderId')
+    expect(typeof complaint.newOrderId).toBe('string')
+
+    const newOrder = await prisma.order.findUnique({
+      where: { id: complaint.newOrderId! },
+    })
+
+    expect(newOrder).not.toBeNull()
+    expect(newOrder?.customerId).toBe(customer.id)
+  })
 
   it('should fetch complaints by positionId, orderId, and customerId', async () => {
     const customer = await prisma.customer.create({
@@ -145,9 +202,9 @@ describe('Complaint Service Unit Tests', () => {
       data: {
         id: randomUUID(),
         positionId: position.id,
-        ComplaintReason: 'BAD_QUALITY', //bearbeitet
+        ComplaintReason: 'BAD_QUALITY',
         ComplaintKind: 'INTERN',
-        RestartProcess: true, //bearbeitet
+        createNewOrder: true,
       },
     })
 

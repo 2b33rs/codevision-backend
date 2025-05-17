@@ -35,9 +35,12 @@ model Order {
   //
   seq         Int        @default(autoincrement())
   orderNumber String     @default(dbgenerated()) @db.VarChar(8)
-  customer    Customer?  @relation(fields: [customerId], references: [id]) //bearbeitet
-  customerId  String?    //bearbeitet
+  customer    Customer?  @relation(fields: [customerId], references: [id])
+  customerId  String?
   positions   Position[]
+
+  // 👇 Verknüpfung zur Beschwerde, wenn die Order aus einer Complaint entstanden ist
+  generatedFromComplaint Complaint? @relation("ComplaintToOrder")
 }
 
 model Position {
@@ -45,17 +48,16 @@ model Position {
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
   deletedAt    DateTime?
-  // Fremdschlüssel
+  //
   order        Order           @relation(fields: [orderId], references: [id])
   orderId      String
   complaints   Complaint[]
   standardProductId String?
-  // Positionsfelder
+  //
   pos_number   Int
   description  String?
   Status       POSITION_STATUS @default(OPEN)
   amount       Int
-  // pro T-Shirt
   name         String
   color        String?
   shirtSize    ShirtSize?
@@ -63,20 +65,18 @@ model Position {
   design       String
 }
 
-// fürs Frontend
 model StandardProduct {
-  id              String          @id @default(uuid())
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  deletedAt       DateTime?
-  //
-  name            String
-  color           String?
-  shirtSize       ShirtSize?
-  productCategory ProductCategory
-  minAmount       Int
-  currentStock    Int             @default(0)
-  amountInProduction Int @default(0)
+  id                  String          @id @default(uuid())
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  deletedAt           DateTime?
+  name                String
+  color               String?
+  shirtSize           ShirtSize?
+  productCategory     ProductCategory
+  minAmount           Int
+  currentStock        Int             @default(0)
+  amountInProduction  Int             @default(0)
 }
 
 model Complaint {
@@ -84,13 +84,18 @@ model Complaint {
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
   deletedAt         DateTime?
-  // Fremdschlüssel
+
+  // 👇 Position, zu der sich die Beschwerde bezieht
   position          Position        @relation(fields: [positionId], references: [id])
   positionId        String
-  //
-  ComplaintReason   ComplaintReason //bearbeitet
+
+  // 👇 Neue Order, die ggf. aus der Beschwerde entsteht
+  newOrderId        String?   @unique
+  newOrder          Order?    @relation("ComplaintToOrder", fields: [newOrderId], references: [id])
+
+  ComplaintReason   ComplaintReason
   ComplaintKind     ComplaintKind
-  RestartProcess    Boolean         //bearbeitet
+  createNewOrder    Boolean
 }
 
 enum POSITION_STATUS {
@@ -107,7 +112,7 @@ enum POSITION_STATUS {
   CANCELLED
 }
 
-enum ComplaintReason { //bearbeitet
+enum ComplaintReason {
   WRONG_SIZE
   WRONG_COLOR
   PRINT_INCORRECT
