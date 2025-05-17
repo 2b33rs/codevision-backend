@@ -74,7 +74,7 @@ describe('Order Service Unit Tests (mit Positionen)', () => {
       expect(pos.amount).toBe(inp.amount)
       expect(pos.pos_number).toBe(inp.pos_number)
       expect(pos.name).toBe(inp.name)
-      expect(pos.prodCategory).toBe(inp.productCategory)
+      expect(pos.productCategory).toBe(inp.productCategory)
       expect(pos.design).toBe(inp.design)
       expect(pos.color).toBe(inp.color)
       expect(pos.shirtSize).toBe(inp.shirtSize)

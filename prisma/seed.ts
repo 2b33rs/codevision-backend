@@ -16,9 +16,25 @@ async function main() {
   const kinds = Object.values(ComplaintKind)
 
   // Aktuelles Jahr als vierstellig (z.B. "2024")
-  const yearPrefix = new Date().getFullYear().toString() // "2024"
-  let orderSequence = 1 // fortlaufende Nummer (pro Jahr)
+  const yearPrefix = new Date().getFullYear().toString()
+  let orderSequence = 1
 
+  // === 1. Erzeuge Standardprodukte ===
+  const standardProducts = await prisma.standardProduct.createMany({
+    data: Array.from({ length: 5 }).map(() => ({
+      name: faker.commerce.productName(),
+      minAmount: faker.number.int({ min: 1, max: 20 }),
+      color: [0, 0, 0, 0].map(() => faker.number.int({ min: 0, max: 100 })).join(','),
+      shirtSize: faker.helpers.arrayElement(sizes),
+      productCategory: ProductCategory.T_SHIRT,
+      amountInProduction: faker.number.int({ min: 0, max: 50 }),
+    })),
+  })
+
+  // Hole die erzeugten Standardprodukte inkl. IDs
+  const allStandardProducts = await prisma.standardProduct.findMany()
+
+  // === 2. Erzeuge Kunden, Orders, Positionen ===
   for (let i = 0; i < 10; i++) {
     const customer = await prisma.customer.create({
       data: {
@@ -35,7 +51,6 @@ async function main() {
 
     const orderCount = faker.number.int({ min: 1, max: 5 })
     for (let j = 0; j < orderCount; j++) {
-      // Achtstelliges Ordernummernformat YYYYNNNN (z.B. 20240001)
       const orderNumber = `${yearPrefix}${orderSequence.toString().padStart(4, '0')}`
       orderSequence++
 
@@ -49,8 +64,10 @@ async function main() {
 
       const posCount = faker.number.int({ min: 1, max: 4 })
       for (let k = 0; k < posCount; k++) {
-        // Erstelle zufällig eine Complaint oder lasse sie weg
         const hasComplaint = faker.datatype.boolean()
+        const maybeStandardProduct = faker.helpers.maybe(() =>
+          faker.helpers.arrayElement(allStandardProducts),
+        )
 
         await prisma.position.create({
           data: {
@@ -60,12 +77,13 @@ async function main() {
             description: faker.commerce.productDescription(),
             amount: faker.number.int({ min: 1, max: 10 }),
             design: faker.lorem.word(),
-            color: `cmyk(${[0, 0, 0, 0]
-              .map(() => faker.number.int({ min: 0, max: 100 }) + '%')
-              .join(', ')})`,
+            color: [0, 0, 0, 0]
+              .map(() => faker.number.int({ min: 0, max: 100 }))
+              .join(','),
             shirtSize: faker.helpers.arrayElement(sizes),
-            prodCategory: ProductCategory.T_SHIRT,
+            productCategory: ProductCategory.T_SHIRT,
             Status: faker.helpers.arrayElement(statuses),
+            standardProductId: maybeStandardProduct?.id ?? null,
             ...(hasComplaint && {
               complaints: {
                 create: {
@@ -80,18 +98,6 @@ async function main() {
       }
     }
   }
-
-  await prisma.standardProduct.createMany({
-    data: Array.from({ length: 5 }).map(() => ({
-      name: faker.commerce.productName(),
-      minAmount: faker.number.int({ min: 1, max: 20 }),
-      color: `cmyk(${[0, 0, 0, 0]
-        .map(() => faker.number.int({ min: 0, max: 100 }) + '%')
-        .join(', ')})`,
-      shirtSize: faker.helpers.arrayElement(sizes),
-      productCategory: ProductCategory.T_SHIRT,
-    })),
-  })
 
   await prisma.$disconnect()
 }

@@ -49,6 +49,7 @@ model Position {
   order        Order           @relation(fields: [orderId], references: [id])
   orderId      String
   complaints   Complaint[]
+  standardProductId String?
   // Positionsfelder
   pos_number   Int
   description  String?
@@ -58,7 +59,7 @@ model Position {
   name         String
   color        String?
   shirtSize    ShirtSize?
-  prodCategory ProductCategory
+  productCategory ProductCategory
   design       String
 }
 
@@ -75,6 +76,7 @@ model StandardProduct {
   productCategory ProductCategory
   minAmount       Int
   currentStock    Int             @default(0)
+  amountInProduction Int @default(0)
 }
 
 model Complaint {

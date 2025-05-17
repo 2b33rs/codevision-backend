@@ -24,6 +24,18 @@ export async function updatePositionStatusByBusinessKey(
 
   if (!position) throw new Error('Position not found')
 
+  // === Neue Logik: amountInProduction runterzählen, wenn Status = PRODUCTION_COMPLETED ===
+  if (status === POSITION_STATUS.PRODUCTION_COMPLETED && position.standardProductId) {
+    await prisma.standardProduct.update({
+      where: { id: position.standardProductId },
+      data: {
+        amountInProduction: {
+          decrement: position.amount,
+        },
+      },
+    })
+  }
+
   return prisma.position.update({
     where: { id: position.id },
     data: { Status: status },
@@ -38,11 +50,12 @@ export async function createPosition(
   amount: number,
   pos_number: number,
   name: string,
-  prodCategory: ProductCategory,
+  productCategory: ProductCategory, // ✅ Parameter umbenennen
   design: string,
   color: string,
   shirtSize: ShirtSize,
   description?: string,
+  standardProductId?: string,
 ) {
   return prisma.position.create({
     data: {
@@ -51,11 +64,12 @@ export async function createPosition(
       description,
       amount,
       name,
-      prodCategory,
+      productCategory, // ✅ Feldname korrigiert
       design,
-      color,                  // neu: Farbfeld
+      color,
       shirtSize,
       Status: POSITION_STATUS.OPEN,
+      standardProductId,
     },
   })
 }

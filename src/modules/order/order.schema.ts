@@ -24,11 +24,14 @@ export const positionZ = z.object({
   shirtSize:      z.enum(['S', 'M', 'L', 'XL']) as z.ZodType<ShirtSize>,
   description:    z.string().nullable().optional(),
 
+  standardProductId: z.string().uuid().optional(),
+
   id:        z.string().uuid().optional(),
   Status:    z.literal('OPEN').optional(),
   createdAt: z.string().datetime().optional(),
   updatedAt: z.string().datetime().optional(),
   orderId:   z.string().uuid().optional(),
+  
 })
 
 export const orderBaseZ = z.object({

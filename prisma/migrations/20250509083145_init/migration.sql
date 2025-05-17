@@ -62,6 +62,7 @@ CREATE TABLE "Position" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
     "orderId" TEXT NOT NULL,
+    "standardProductId" TEXT,
     "pos_number" INTEGER NOT NULL,
     "description" TEXT,
     "Status" "POSITION_STATUS" NOT NULL DEFAULT 'OPEN',
@@ -69,7 +70,7 @@ CREATE TABLE "Position" (
     "name" TEXT NOT NULL,
     "color" TEXT,
     "shirtSize" "ShirtSize",
-    "prodCategory" "ProductCategory" NOT NULL,
+    "productCategory" "ProductCategory" NOT NULL,
     "design" TEXT NOT NULL,
 
     CONSTRAINT "Position_pkey" PRIMARY KEY ("id")
@@ -87,6 +88,7 @@ CREATE TABLE "StandardProduct" (
     "productCategory" "ProductCategory" NOT NULL,
     "MinAmount" INTEGER NOT NULL,
     "currentStock" INTEGER NOT NULL DEFAULT 0,
+    "amountInProduction" INTEGER DEFAULT 0,
 
     CONSTRAINT "StandardProduct_pkey" PRIMARY KEY ("id")
 );

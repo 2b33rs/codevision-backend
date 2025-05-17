@@ -6,11 +6,18 @@ import {
   afterAll,
   beforeEach,
   afterEach,
+  vi,
 } from 'vitest'
 import Fastify from 'fastify'
 import { registerPlugins } from '../../plugins/register-plugins'
 import { registerModules } from '../register-modules'
 import { prisma } from '../../plugins/prisma'
+
+// ⬇️ Mocks für Lagerbestand & Produktion
+vi.mock('../../external/inventory.service', () => ({
+  getInventoryCount: vi.fn().mockResolvedValue(0),
+  createProductionOrder: vi.fn().mockResolvedValue(undefined),
+}))
 
 let app: ReturnType<typeof Fastify>
 
@@ -124,5 +131,71 @@ describe('Product Routes E2E', () => {
       url: `/product/${product.id}`,
     })
     expect(res.statusCode).toBe(200)
+  })
+
+  it('should increase amountInProduction on production order', async () => {
+    const product = await prisma.standardProduct.create({
+      data: {
+        name: 'ProductionTest',
+        minAmount: 1,
+        productCategory: 'T_SHIRT',
+        color: 'cmyk(10%,20%,30%,40%)',
+        shirtSize: 'M',
+      },
+    })
+  
+    const customer = await prisma.customer.create({
+      data: {
+        name: 'Testkunde',
+        email: `prodtest+${Date.now()}@example.com`, // dynamisch, um unique zu sein
+        phone: '0000',
+        customerType: 'WEBSHOP',
+      },
+    })
+  
+    const res = await app.inject({
+      method: 'POST',
+      url: '/order',
+      payload: {
+        customerId: customer.id,
+        positions: [
+          {
+            pos_number: 1,
+            amount: 5,
+            name: 'Test-Produktionsauftrag',
+            productCategory: 'T_SHIRT',
+            design: 'TestDesign',
+            color: product.color,
+            shirtSize: product.shirtSize,
+            standardProductId: product.id,
+          },
+        ],
+      },
+    })
+  
+    if (res.statusCode !== 200) {
+      console.error('❌ Fehlerhafte Response:', res.statusCode)
+      console.error('📦 Response Body:', res.body)
+    }
+  
+    expect(res.statusCode, res.body).toBe(200)
+  
+    // optional: Parsen prüfen
+    let responseJson
+    try {
+      responseJson = JSON.parse(res.body)
+    } catch (err) {
+      console.error('❌ JSON Parse Error:', err)
+      console.error('📤 Raw Body:', res.body)
+      throw err
+    }
+  
+    console.log('✅ Erfolgreiche Bestellung:', responseJson)
+  
+    const updated = await prisma.standardProduct.findUniqueOrThrow({
+      where: { id: product.id },
+    })
+  
+    expect(updated.amountInProduction).toBe(5)
   })
 })
