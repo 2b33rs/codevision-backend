@@ -24,7 +24,9 @@ async function main() {
     data: Array.from({ length: 5 }).map(() => ({
       name: faker.commerce.productName(),
       minAmount: faker.number.int({ min: 1, max: 20 }),
-      color: [0, 0, 0, 0].map(() => faker.number.int({ min: 0, max: 100 })).join(','),
+      color: `cmyk(${Array.from({ length: 4 })
+        .map(() => `${faker.number.int({ min: 0, max: 100 })}%`)
+        .join(',')})`,
       shirtSize: faker.helpers.arrayElement(sizes),
       productCategory: ProductCategory.T_SHIRT,
       amountInProduction: faker.number.int({ min: 0, max: 50 }),
@@ -62,7 +64,7 @@ async function main() {
         },
       })
 
-      const posCount = faker.number.int({ min: 1, max: 4 })
+      const posCount = faker.number.int({ min: 1, max: 6 })
       for (let k = 0; k < posCount; k++) {
         const hasComplaint = faker.datatype.boolean()
         const maybeStandardProduct = faker.helpers.maybe(() =>
@@ -77,9 +79,9 @@ async function main() {
             description: faker.commerce.productDescription(),
             amount: faker.number.int({ min: 1, max: 10 }),
             design: faker.lorem.word(),
-            color: [0, 0, 0, 0]
-              .map(() => faker.number.int({ min: 0, max: 100 }))
-              .join(','),
+            color: `cmyk(${Array.from({ length: 4 })
+              .map(() => `${faker.number.int({ min: 0, max: 100 })}%`)
+              .join(',')})`,
             shirtSize: faker.helpers.arrayElement(sizes),
             productCategory: ProductCategory.T_SHIRT,
             Status: faker.helpers.arrayElement(statuses),
