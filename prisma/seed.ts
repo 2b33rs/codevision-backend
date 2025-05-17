@@ -89,7 +89,7 @@ async function main() {
                 create: {
                   ComplaintReason: faker.helpers.arrayElement(reasons),
                   ComplaintKind: faker.helpers.arrayElement(kinds),
-                  RestartProcess: faker.datatype.boolean(),
+                  createNewOrder: faker.datatype.boolean(),
                 },
               },
             }),

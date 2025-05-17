@@ -14,7 +14,7 @@ export const complaintPostZ = z.object({
   positionId: z.string().uuid(),
   ComplaintReason: z.enum(ComplaintReasonEnum),
   ComplaintKind: z.enum(ComplaintKindEnum),
-  RestartProcess: z.boolean(),
+  createNewOrder: z.boolean(),
 })
 
 export const complaintQueryZ = z.object({

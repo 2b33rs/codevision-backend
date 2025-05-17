@@ -102,7 +102,8 @@ CREATE TABLE "Complaint" (
     "positionId" TEXT NOT NULL,
     "ComplaintReason" "ComplaintReason" NOT NULL,
     "ComplaintKind" "ComplaintKind" NOT NULL,
-    "RestartProcess"    Boolean ,
+    "createNewOrder"    Boolean ,
+    "newOrderId" TEXT,
     CONSTRAINT "Complaint_pkey" PRIMARY KEY ("id")
 );
 
