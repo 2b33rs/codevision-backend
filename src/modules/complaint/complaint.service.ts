@@ -24,7 +24,7 @@ export async function createComplaint(input: {
   let newOrderId: string | undefined = undefined
 
   // === Neue Order erzeugen, wenn Flag aktiv ===
-  if (input.createNewOrder === true) {
+  if (input.createNewOrder) {
     const newOrder = await prisma.order.create({
       data: {
         customerId: position.order.customerId!,
@@ -38,7 +38,6 @@ export async function createComplaint(input: {
               design: position.design,
               color: position.color,
               shirtSize: position.shirtSize,
-              Status: 'OPEN',
               description: position.description,
               standardProductId: position.standardProductId,
             },
@@ -50,7 +49,7 @@ export async function createComplaint(input: {
     newOrderId = newOrder.id
 
     if (input.ComplaintReason !== 'OTHER') {
-      await updatePositionStatusByBusinessKey(compositeId, 'OPEN')
+      await updatePositionStatusByBusinessKey(compositeId, 'IN_PROGRESS')
     }
   } else {
     // Wenn keine neue Order gewünscht: Storno
@@ -60,7 +59,6 @@ export async function createComplaint(input: {
   // === Complaint mit optionaler Verknüpfung zur neuen Order ===
   const complaint = await prisma.complaint.create({
     data: {
-      id: randomUUID(),
       positionId: input.positionId,
       ComplaintReason: input.ComplaintReason,
       ComplaintKind: input.ComplaintKind,
@@ -85,5 +83,4 @@ export const getComplaintsByCustomer = (customerId: string) =>
     where: { position: { order: { customerId } } },
   })
 
-export const getAllComplaints = () =>
-  prisma.complaint.findMany()
+export const getAllComplaints = () => prisma.complaint.findMany()

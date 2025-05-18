@@ -5,6 +5,8 @@ import {
   positionParamsSchema,
   positionStatusPatchSchema,
 } from './position.schema'
+import { $Enums } from '../../../generated/prisma'
+import POSITION_STATUS = $Enums.POSITION_STATUS
 
 export default async function positionRoutes(fastify: FastifyInstance) {
   // PATCH
@@ -26,7 +28,7 @@ export default async function positionRoutes(fastify: FastifyInstance) {
       const { status } = positionStatusPatchSchema.parse(request.body)
       const updated = await updatePositionStatusByBusinessKey(
         compositeId,
-        status,
+        status as POSITION_STATUS,
       )
       reply.send('Updated position status successfully to ' + updated.Status)
     },

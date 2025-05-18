@@ -1,14 +1,16 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 
-import { schemas, createOrderZ, listOrdersQueryZ } from './order.schema'
+import { createOrderZ, listOrdersQueryZ, schemas } from './order.schema'
 import {
   createOrder,
+  getAllOrders,
   getOrderById,
   getOrdersByCustomer,
-  getAllOrders,
+  getOrdersWithPositionStatus,
   PositionInput,
 } from './order.service'
+import { POSITION_STATUS } from '../../../generated/prisma'
 
 export default async function orderRoutes(fastify: FastifyInstance) {
   /* ───────── POST /orders ───────── */
@@ -136,6 +138,47 @@ export default async function orderRoutes(fastify: FastifyInstance) {
           message: 'Fehler beim Abrufen von Orders',
           detail: err.message,
         })
+      }
+    },
+  )
+
+  /* ───────── GET /order/status/:status ───────── */
+  fastify.get<{
+    Params: { status: POSITION_STATUS }
+  }>(
+    '/status/:status',
+    {
+      schema: {
+        tags: ['Order'],
+        summary:
+          'Get all orders with at least one position with the given status',
+        params: {
+          type: 'object',
+          properties: {
+            status: { type: 'string', enum: Object.values(POSITION_STATUS) },
+          },
+          required: ['status'],
+        },
+        response: {
+          200: {
+            type: 'array',
+            items: schemas.orderResponse,
+          },
+          500: {
+            type: 'object',
+            properties: { error: { type: 'string' } },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { status } = request.params
+      try {
+        const orders = await getOrdersWithPositionStatus(status)
+        reply.send(orders)
+      } catch (error) {
+        console.error('❌ Fehler in GET /order/status/:status:', error)
+        reply.status(500).send({ error: 'Interner Serverfehler' })
       }
     },
   )

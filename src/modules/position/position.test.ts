@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { prisma } from '../../plugins/prisma'
 import {
   createPosition,
@@ -48,7 +48,7 @@ describe('Position Service Unit Tests', () => {
       'DesignCool',
       'cmyk(10%,20%,30%,40%)',
       'M',
-      'Testbeschreibung'
+      'Testbeschreibung',
     )
 
     expect(pos).toHaveProperty('id')
@@ -57,7 +57,7 @@ describe('Position Service Unit Tests', () => {
     expect(pos.design).toBe('DesignCool')
     expect(pos.color).toBe('cmyk(10%,20%,30%,40%)')
     expect(pos.shirtSize).toBe('M')
-    expect(pos.Status).toBe('OPEN')
+    expect(pos.Status).toBe('IN_PROGRESS')
     expect(pos.orderId).toBe(order.id)
   })
 
@@ -101,16 +101,19 @@ describe('Position Service Unit Tests', () => {
         design: 'DesignA',
         color: 'cmyk(1%,1%,1%,1%)',
         shirtSize: 'M',
-        Status: 'IN_PRINTING',
+        Status: 'IN_PROGRESS',
         standardProductId: product.id,
       },
     })
 
     const compositeId = `${order.orderNumber}.${pos.pos_number}`
 
-    const updated = await updatePositionStatusByBusinessKey(compositeId, 'PRODUCTION_COMPLETED')
+    const updated = await updatePositionStatusByBusinessKey(
+      compositeId,
+      'COMPLETED',
+    )
 
-    expect(updated.Status).toBe('PRODUCTION_COMPLETED')
+    expect(updated.Status).toBe('COMPLETED')
 
     const productAfter = await prisma.standardProduct.findUniqueOrThrow({
       where: { id: product.id },

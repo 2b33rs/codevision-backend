@@ -6,6 +6,7 @@ import {
   createProductionOrder,
   getInventoryCount,
 } from '../../external/inventory.service'
+import POSITION_STATUS = $Enums.POSITION_STATUS
 
 type ProductCategory = $Enums.ProductCategory
 type ShirtSize = $Enums.ShirtSize
@@ -141,6 +142,26 @@ export const getAllOrders = async () => {
     return newVar
   } catch (err) {
     console.error('❌ Fehler beim Laden der Orders:', err)
+    throw err
+  }
+}
+
+export async function getOrdersWithPositionStatus(status: POSITION_STATUS) {
+  try {
+    return await prisma.order.findMany({
+      where: {
+        positions: {
+          some: {
+            Status: status,
+          },
+        },
+      },
+      include: {
+        positions: true,
+      },
+    })
+  } catch (err) {
+    console.error('❌ Fehler beim Abrufen der Orders mit Position-Status:', err)
     throw err
   }
 }

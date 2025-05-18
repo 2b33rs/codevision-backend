@@ -44,70 +44,64 @@ model Order {
 }
 
 model Position {
-  id           String          @id @unique @default(uuid())
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  deletedAt    DateTime?
-  //
-  order        Order           @relation(fields: [orderId], references: [id])
-  orderId      String
-  complaints   Complaint[]
-  standardProductId String?
-  //
-  pos_number   Int
-  description  String?
-  Status       POSITION_STATUS @default(OPEN)
-  amount       Int
-  name         String
-  color        String?
-  shirtSize    ShirtSize?
-  productCategory ProductCategory
-  design       String
-}
-
-model StandardProduct {
-  id                  String          @id @default(uuid())
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
-  deletedAt           DateTime?
-  name                String
-  color               String?
-  shirtSize           ShirtSize?
-  productCategory     ProductCategory
-  minAmount           Int
-  currentStock        Int             @default(0)
-  amountInProduction  Int             @default(0)
-}
-
-model Complaint {
-  id                String          @id @default(uuid())
+  id                String          @id @unique @default(uuid())
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
   deletedAt         DateTime?
+  //
+  order             Order           @relation(fields: [orderId], references: [id])
+  orderId           String
+  complaints        Complaint[]
+  standardProductId String?
+  //
+  pos_number        Int
+  description       String?
+  Status            POSITION_STATUS @default(IN_PROGRESS)
+  amount            Int
+  name              String
+  color             String?
+  shirtSize         ShirtSize?
+  productCategory   ProductCategory
+  design            String
+}
+
+model StandardProduct {
+  id                 String          @id @default(uuid())
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  deletedAt          DateTime?
+  name               String
+  color              String?
+  shirtSize          ShirtSize?
+  productCategory    ProductCategory
+  minAmount          Int
+  currentStock       Int             @default(0)
+  amountInProduction Int             @default(0)
+}
+
+model Complaint {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   // 👇 Position, zu der sich die Beschwerde bezieht
-  position          Position        @relation(fields: [positionId], references: [id])
-  positionId        String
+  position   Position @relation(fields: [positionId], references: [id])
+  positionId String
 
   // 👇 Neue Order, die ggf. aus der Beschwerde entsteht
-  newOrderId        String?   @unique
-  newOrder          Order?    @relation("ComplaintToOrder", fields: [newOrderId], references: [id])
+  newOrderId String? @unique
+  newOrder   Order?  @relation("ComplaintToOrder", fields: [newOrderId], references: [id])
 
-  ComplaintReason   ComplaintReason
-  ComplaintKind     ComplaintKind
-  createNewOrder    Boolean
+  ComplaintReason ComplaintReason
+  ComplaintKind   ComplaintKind
+  createNewOrder  Boolean
 }
 
 enum POSITION_STATUS {
-  OPEN
-  FINISHED_MATERIAL_REQUESTED
-  PRODUCTION_NOTIFIED
-  IN_DYEING
-  IN_PRINTING
-  PRODUCTION_COMPLETED
-  FINISHED_MATERIAL_READY_FOR_PICKUP
+  IN_PROGRESS
   READY_FOR_SHIPMENT
-  SHIPPED
+  INSPECTED
   COMPLETED
   CANCELLED
 }

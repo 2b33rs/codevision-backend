@@ -101,7 +101,7 @@ describe('Order Service Unit Tests (mit Positionen)', () => {
       expect(pos.color).toBe(inp.color)
       expect(pos.shirtSize).toBe(inp.shirtSize)
       expect(pos.description).toBe(inp.description ?? null)
-      expect(pos.Status).toBe('OPEN')
+      expect(pos.Status).toBe('IN_PROGRESS')
       expect(pos.orderId).toBe(newOrder.id)
     })
   })
