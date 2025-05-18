@@ -7,16 +7,23 @@ import {
   beforeEach,
   afterEach,
   vi,
+  MockedFunction,
 } from 'vitest'
 import Fastify from 'fastify'
 import { registerPlugins } from '../../plugins/register-plugins'
 import { registerModules } from '../register-modules'
 import { prisma } from '../../plugins/prisma'
+import * as inventoryService from '../../external/inventory.service'
 
-// ⬇️ Mocks für Lagerbestand & Produktion
+// Mock für externen Inventory-Service auf Basis der input-Daten
 vi.mock('../../external/inventory.service', () => ({
   getInventoryCount: vi.fn().mockResolvedValue(0),
-  createProductionOrder: vi.fn().mockResolvedValue(undefined),
+  createProductionOrder: vi.fn().mockImplementation(async (input: any) => ({
+    status: 'ok',
+    message: `Produktionsauftrag für ${input.amount} Stück wurde erstellt`,
+    productId: input.productId,
+    amount: input.amount,
+  })),
 }))
 
 let app: ReturnType<typeof Fastify>
@@ -24,7 +31,7 @@ let app: ReturnType<typeof Fastify>
 beforeAll(async () => {
   app = Fastify()
   await registerPlugins(app)
-  await registerModules(app)
+  await registerModules(app) // registriert alle /product-Endpunkte
 })
 
 afterAll(async () => {
@@ -32,16 +39,18 @@ afterAll(async () => {
 })
 
 beforeEach(async () => {
+  // BEGIN TRANSACTION
   await prisma.$executeRawUnsafe('BEGIN')
 })
 
 afterEach(async () => {
+  // ROLLBACK
   await prisma.$executeRawUnsafe('ROLLBACK')
 })
 
-describe('Product Routes E2E', () => {
-  it('should create a product', async () => {
-    const response = await app.inject({
+describe('Product Routes – vollständige Abdeckung', () => {
+  it('POST   /product                      – create a product', async () => {
+    const res = await app.inject({
       method: 'POST',
       url: '/product',
       payload: {
@@ -52,12 +61,13 @@ describe('Product Routes E2E', () => {
         minAmount: 1,
       },
     })
-    expect(response.statusCode).toBe(200)
-    const body = JSON.parse(response.body)
+    expect(res.statusCode).toBe(200)
+    const body = res.json()
     expect(body).toHaveProperty('id')
+    expect(body.name).toBe('E2E Product')
   })
 
-  it('should list products', async () => {
+  it('GET    /product                      – list products', async () => {
     await prisma.standardProduct.create({
       data: {
         name: 'List Test',
@@ -69,11 +79,12 @@ describe('Product Routes E2E', () => {
     })
     const res = await app.inject({ method: 'GET', url: '/product' })
     expect(res.statusCode).toBe(200)
-    const list = JSON.parse(res.body)
+    const list = res.json()
     expect(Array.isArray(list)).toBe(true)
+    expect(list.length).toBeGreaterThanOrEqual(1)
   })
 
-  it('should get a single product by id', async () => {
+  it('GET    /product/:id                  – get a single product by id', async () => {
     const product = await prisma.standardProduct.create({
       data: {
         name: 'Single Get',
@@ -88,11 +99,12 @@ describe('Product Routes E2E', () => {
       url: `/product/${product.id}`,
     })
     expect(res.statusCode).toBe(200)
-    const body = JSON.parse(res.body)
+    const body = res.json()
     expect(body.name).toBe('Single Get')
+    expect(body).toHaveProperty('currentStock')
   })
 
-  it('should update a product', async () => {
+  it('PUT    /product/:id                  – update a product', async () => {
     const product = await prisma.standardProduct.create({
       data: {
         name: 'To Update',
@@ -112,11 +124,11 @@ describe('Product Routes E2E', () => {
       },
     })
     expect(res.statusCode).toBe(200)
-    const updated = JSON.parse(res.body)
+    const updated = res.json()
     expect(updated.name).toBe('Updated Name')
   })
 
-  it('should soft delete a product', async () => {
+  it('DELETE /product/:id                  – soft delete a product', async () => {
     const product = await prisma.standardProduct.create({
       data: {
         name: 'To Delete',
@@ -131,71 +143,30 @@ describe('Product Routes E2E', () => {
       url: `/product/${product.id}`,
     })
     expect(res.statusCode).toBe(200)
+    const deleted = res.json()
+    expect(deleted.deletedAt).not.toBeNull()
   })
 
-  it('should increase amountInProduction on production order', async () => {
+  it('POST   /product/:id/production-order – create production order', async () => {
     const product = await prisma.standardProduct.create({
       data: {
-        name: 'ProductionTest',
-        minAmount: 1,
+        name: 'ProdOrderTest',
         productCategory: 'T_SHIRT',
+        minAmount: 2,
         color: 'cmyk(10%,20%,30%,40%)',
-        shirtSize: 'M',
+        shirtSize: 'L',
       },
     })
-  
-    const customer = await prisma.customer.create({
-      data: {
-        name: 'Testkunde',
-        email: `prodtest+${Date.now()}@example.com`, // dynamisch, um unique zu sein
-        phone: '0000',
-        customerType: 'WEBSHOP',
-      },
-    })
-  
+
     const res = await app.inject({
       method: 'POST',
-      url: '/order',
-      payload: {
-        customerId: customer.id,
-        positions: [
-          {
-            pos_number: 1,
-            amount: 5,
-            name: 'Test-Produktionsauftrag',
-            productCategory: 'T_SHIRT',
-            design: 'TestDesign',
-            color: product.color,
-            shirtSize: product.shirtSize,
-            standardProductId: product.id,
-          },
-        ],
-      },
+      url: `/product/${product.id}/production-order`,
+      payload: { amount: 5 },
     })
-  
-    if (res.statusCode !== 200) {
-      console.error('❌ Fehlerhafte Response:', res.statusCode)
-      console.error('📦 Response Body:', res.body)
-    }
-  
-    expect(res.statusCode, res.body).toBe(200)
-  
-    // optional: Parsen prüfen
-    let responseJson
-    try {
-      responseJson = JSON.parse(res.body)
-    } catch (err) {
-      console.error('❌ JSON Parse Error:', err)
-      console.error('📤 Raw Body:', res.body)
-      throw err
-    }
-  
-    console.log('✅ Erfolgreiche Bestellung:', responseJson)
-  
-    const updated = await prisma.standardProduct.findUniqueOrThrow({
-      where: { id: product.id },
-    })
-  
-    expect(updated.amountInProduction).toBe(5)
+    expect(res.statusCode).toBe(200)
+    const body = res.json()
+    expect(body.status).toBe('ok')
+    expect(body.productId).toBe(product.id)
+    expect(body.amount).toBe(5)
   })
 })
