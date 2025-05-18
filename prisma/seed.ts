@@ -59,7 +59,7 @@ async function main() {
       for (let j = 0; j < orderCount; j++) {
         const order = await prisma.order.create({
           data: {
-            customer: { connect: { id: customer.id } },
+            customerId: customer.id,
             // orderNumber wird automatisch generiert
           },
         })
