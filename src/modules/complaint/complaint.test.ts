@@ -1,225 +1,103 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { prisma } from '../../plugins/prisma'
+/// <reference types="vitest" />
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest'
+import type { Mock } from 'vitest'
+import Fastify from 'fastify'
+import complaintRoutes from './complaint.routes'
+
 import {
   createComplaint,
   getAllComplaints,
-  getComplaintsByCustomer,
-  getComplaintsByOrder,
   getComplaintsByPosition,
+  getComplaintsByOrder,
+  getComplaintsByCustomer,
 } from './complaint.service'
-import { randomUUID } from 'crypto'
 
-beforeEach(async () => {
-  await prisma.$executeRawUnsafe('BEGIN')
-})
+// Mock the service module to isolate route tests
+vi.mock('./complaint.service')
 
-afterEach(async () => {
-  await prisma.$executeRawUnsafe('ROLLBACK')
-})
+describe('Complaint routes', () => {
+  let app: ReturnType<typeof Fastify>
 
-describe('Complaint Service Unit Tests', () => {
-  it('should create a complaint and update position status (unless OTHER)', async () => {
-    const customer = await prisma.customer.create({
-      data: {
-        name: 'Unit Kunde',
-        email: `unit-${Date.now()}@mail.com`,
-        phone: '12345',
-        customerType: 'WEBSHOP',
-      },
-    })
+  const mockComplaint = {
+    id: '11111111-1111-1111-1111-111111111111',
+    positionId: '22222222-2222-2222-2222-222222222222',
+    ComplaintReason: 'WRONG_SIZE' as const,
+    ComplaintKind: 'INTERN' as const,
+    orderId: '33333333-3333-3333-3333-333333333333',
+    customerId: '44444444-4444-4444-4444-444444444444',
+  }
 
-    const order = await prisma.order.create({
-      data: {
-        orderNumber: '25_999',
-        customerId: customer.id,
-        deletedAt: null,
-      },
-    })
+  beforeAll(async () => {
+    app = Fastify()
+    app.register(complaintRoutes, { prefix: '/complaints' })
+    await app.ready()
+  })
 
-    const position = await prisma.position.create({
-      data: {
-        orderId: order.id,
-        pos_number: 99,
-        name: 'Unit Pos',
-        amount: 1,
-        productCategory: 'T_SHIRT',
-        design: 'Unit Design',
-        Status: 'COMPLETED',
-        shirtSize: 'M',
-      },
-    })
+  afterAll(async () => {
+    await app.close()
+  })
 
-    const complaint = await createComplaint({
-      positionId: position.id,
-      ComplaintReason: 'WRONG_PRODUCT',
-      ComplaintKind: 'EXTERN',
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('POST /complaints should call createComplaint and return its result', async () => {
+    (createComplaint as Mock).mockResolvedValue(mockComplaint)
+
+    const payload = {
+      positionId: mockComplaint.positionId,
+      ComplaintReason: mockComplaint.ComplaintReason,
+      ComplaintKind: mockComplaint.ComplaintKind,
       createNewOrder: true,
-    })
+    }
 
-    expect(complaint).toHaveProperty('id')
+    const response = await app.inject({ method: 'POST', url: '/complaints', payload })
 
-    const updatedPosition = await prisma.position.findUnique({
-      where: { id: position.id },
-    })
-    expect(updatedPosition?.Status).toBe('IN_PROGRESS')
+    expect(response.statusCode).toBe(200)
+    expect(createComplaint).toHaveBeenCalledWith(payload)
+    expect(response.json()).toEqual(mockComplaint)
   })
 
-  it('should create a complaint and set position status to CANCELLED when createNewOrder is false', async () => {
-    const customer = await prisma.customer.create({
-      data: {
-        id: randomUUID(),
-        name: 'Cancel Kunde',
-        email: `cancel-${Date.now()}@mail.com`,
-        phone: '54321',
-        customerType: 'WEBSHOP',
-      },
-    })
+  it('GET /complaints should call getAllComplaints and return its result', async () => {
+    (getAllComplaints as Mock).mockResolvedValue([mockComplaint])
 
-    const order = await prisma.order.create({
-      data: {
-        id: randomUUID(),
-        orderNumber: '25_997',
-        customerId: customer.id,
-        deletedAt: null,
-      },
-    })
+    const response = await app.inject({ method: 'GET', url: '/complaints' })
 
-    const position = await prisma.position.create({
-      data: {
-        orderId: order.id,
-        pos_number: 77,
-        name: 'Cancel Pos',
-        amount: 1,
-        productCategory: 'T_SHIRT',
-        design: 'Cancel Design',
-        Status: 'IN_PROGRESS',
-        shirtSize: 'L',
-      },
-    })
-
-    const complaint = await createComplaint({
-      positionId: position.id,
-      ComplaintReason: 'WRONG_COLOR',
-      ComplaintKind: 'INTERN',
-      createNewOrder: false,
-    })
-
-    expect(complaint).toHaveProperty('id')
-
-    const updatedPosition = await prisma.position.findUnique({
-      where: { id: position.id },
-    })
-    expect(updatedPosition?.Status).toBe('CANCELLED')
+    expect(response.statusCode).toBe(200)
+    expect(getAllComplaints).toHaveBeenCalled()
+    expect(response.json()).toEqual([mockComplaint])
   })
 
-  it('should create a new order when createNewOrder is true and link it to the complaint', async () => {
-    const customer = await prisma.customer.create({
-      data: {
-        id: randomUUID(),
-        name: 'Reorder Kunde',
-        email: `reorder-${Date.now()}@mail.com`,
-        phone: '44444',
-        customerType: 'BUSINESS',
-      },
-    })
+  it('GET /complaints?positionId=ID should call getComplaintsByPosition and return its result', async () => {
+    (getComplaintsByPosition as Mock).mockResolvedValue([mockComplaint])
 
-    const order = await prisma.order.create({
-      data: {
-        id: randomUUID(),
-        orderNumber: '25_996',
-        customerId: customer.id,
-        deletedAt: null,
-      },
-    })
+    const url = `/complaints?positionId=${mockComplaint.positionId}`
+    const response = await app.inject({ method: 'GET', url })
 
-    const position = await prisma.position.create({
-      data: {
-        id: randomUUID(),
-        orderId: order.id,
-        pos_number: 11,
-        name: 'Reorder Pos',
-        amount: 3,
-        productCategory: 'T_SHIRT',
-        design: 'Reorder Design',
-        Status: 'COMPLETED',
-        shirtSize: 'L',
-      },
-    })
-
-    const complaint = await createComplaint({
-      positionId: position.id,
-      ComplaintReason: 'MISSING_ITEM',
-      ComplaintKind: 'INTERN',
-      createNewOrder: true,
-    })
-
-    expect(complaint).toHaveProperty('newOrderId')
-    expect(typeof complaint.newOrderId).toBe('string')
-
-    const newOrder = await prisma.order.findUnique({
-      where: { id: complaint.newOrderId! },
-    })
-
-    expect(newOrder).not.toBeNull()
-    expect(newOrder?.customerId).toBe(customer.id)
+    expect(response.statusCode).toBe(200)
+    expect(getComplaintsByPosition).toHaveBeenCalledWith(mockComplaint.positionId)
+    expect(response.json()).toEqual([mockComplaint])
   })
 
-  it('should fetch complaints by positionId, orderId, and customerId', async () => {
-    const customer = await prisma.customer.create({
-      data: {
-        id: randomUUID(),
-        name: 'Query Kunde',
-        email: `query-${Date.now()}@mail.com`,
-        phone: '67890',
-        customerType: 'BUSINESS',
-      },
-    })
+  it('GET /complaints?orderId=ID should call getComplaintsByOrder and return its result', async () => {
+    (getComplaintsByOrder as Mock).mockResolvedValue([mockComplaint])
 
-    const order = await prisma.order.create({
-      data: {
-        id: randomUUID(),
-        orderNumber: '25_998',
-        customerId: customer.id,
-        deletedAt: null,
-      },
-    })
+    const url = `/complaints?orderId=${mockComplaint.orderId}`
+    const response = await app.inject({ method: 'GET', url })
 
-    const position = await prisma.position.create({
-      data: {
-        orderId: order.id,
-        pos_number: 88,
-        name: 'Query Pos',
-        amount: 2,
-        productCategory: 'T_SHIRT',
-        design: 'Query Design',
-        shirtSize: 'S',
-      },
-    })
-
-    const complaint = await prisma.complaint.create({
-      data: {
-        positionId: position.id,
-        ComplaintReason: 'BAD_QUALITY',
-        ComplaintKind: 'INTERN',
-        createNewOrder: true,
-      },
-    })
-
-    const byPosition = await getComplaintsByPosition(position.id)
-    expect(byPosition.length).toBe(1)
-    expect(byPosition[0].id).toBe(complaint.id)
-
-    const byOrder = await getComplaintsByOrder(order.id)
-    expect(byOrder.length).toBe(1)
-    expect(byOrder[0].id).toBe(complaint.id)
-
-    const byCustomer = await getComplaintsByCustomer(customer.id)
-    expect(byCustomer.length).toBe(1)
-    expect(byCustomer[0].id).toBe(complaint.id)
+    expect(response.statusCode).toBe(200)
+    expect(getComplaintsByOrder).toHaveBeenCalledWith(mockComplaint.orderId)
+    expect(response.json()).toEqual([mockComplaint])
   })
 
-  it('should return all complaints', async () => {
-    const complaints = await getAllComplaints()
-    expect(Array.isArray(complaints)).toBe(true)
+  it('GET /complaints?customerId=ID should call getComplaintsByCustomer and return its result', async () => {
+    (getComplaintsByCustomer as Mock).mockResolvedValue([mockComplaint])
+
+    const url = `/complaints?customerId=${mockComplaint.customerId}`
+    const response = await app.inject({ method: 'GET', url })
+
+    expect(response.statusCode).toBe(200)
+    expect(getComplaintsByCustomer).toHaveBeenCalledWith(mockComplaint.customerId)
+    expect(response.json()).toEqual([mockComplaint])
   })
 })

@@ -1,15 +1,23 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, afterEach, describe, expect, it, vi, MockedFunction } from 'vitest'
+import Fastify from 'fastify'
 import { prisma } from '../../plugins/prisma'
+import positionRoutes from './position.routes'
 import {
   createPosition,
   updatePositionStatusByBusinessKey,
 } from './position.service'
+import { requestFinishedGoods } from '../../external/inventory.service'
 import { randomUUID } from 'crypto'
 import { $Enums } from '../../../generated/prisma'
 
 type ProductCategory = $Enums.ProductCategory
 type ShirtSize = $Enums.ShirtSize
 type POSITION_STATUS = $Enums.POSITION_STATUS
+
+// Mock des externen Inventory-Service
+vi.mock('../../external/inventory.service', () => ({
+  requestFinishedGoods: vi.fn(),
+}))
 
 describe('Position Service Unit Tests', () => {
   beforeEach(async () => {
@@ -120,5 +128,218 @@ describe('Position Service Unit Tests', () => {
     })
 
     expect(productAfter.amountInProduction).toBe(2)
+  })
+})
+
+describe('Position Routes', () => {
+  let app: ReturnType<typeof Fastify>
+
+  beforeEach(async () => {
+    app = Fastify()
+    app.register(positionRoutes, { prefix: '/position' })
+    await app.ready()
+
+    await prisma.position.deleteMany()
+    await prisma.order.deleteMany()
+    await prisma.customer.deleteMany()
+  })
+
+  afterEach(async () => {
+    await app.close()
+    vi.clearAllMocks()
+  })
+
+  it('POST /position – create new position', async () => {
+    // Seed Customer + Order
+    const customer = await prisma.customer.create({
+      data: {
+        id: randomUUID(),
+        name: 'Route-Create-Kunde',
+        email: `route-create-${Date.now()}@mail.com`,
+        phone: '1111',
+        customerType: 'WEBSHOP',
+      },
+    })
+    const order = await prisma.order.create({
+      data: {
+        id: randomUUID(),
+        customerId: customer.id,
+        orderNumber: '20250201',
+      },
+    })
+
+    const payload = {
+      orderId: order.id,
+      amount: 4,
+      pos_number: 1,
+      name: 'Test Shirt',
+      productCategory: 'T_SHIRT' as ProductCategory,
+      design: 'TestDesign',
+      color: 'cmyk(10%,20%,30%,40%)',
+      shirtSize: 'L' as ShirtSize,
+      description: 'Test description',
+    }
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/position',
+      payload,
+    })
+
+    expect(res.statusCode).toBe(200)
+    const body = res.json()
+    expect(body).toHaveProperty('id')
+    expect(body).toMatchObject({
+      orderId: order.id,
+      amount: 4,
+      pos_number: 1,
+      name: 'Test Shirt',
+      productCategory: 'T_SHIRT',
+      design: 'TestDesign',
+      color: 'cmyk(10%,20%,30%,40%)',
+      shirtSize: 'L',
+      description: 'Test description',
+      Status: 'IN_PROGRESS',
+    })
+  })
+
+  it('PATCH /position/:compositeId – update status', async () => {
+    // Seed Customer + Order + Position
+    const customer = await prisma.customer.create({
+      data: {
+        id: randomUUID(),
+        name: 'Route-Patch-Kunde',
+        email: `route-patch-${Date.now()}@mail.com`,
+        phone: '2222',
+        customerType: 'WEBSHOP',
+      },
+    })
+    const order = await prisma.order.create({
+      data: {
+        id: randomUUID(),
+        customerId: customer.id,
+        orderNumber: '20250202',
+      },
+    })
+    const pos = await prisma.position.create({
+      data: {
+        orderId: order.id,
+        pos_number: 5,
+        amount: 2,
+        name: 'Patch-Test-Pos',
+        productCategory: 'T_SHIRT',
+        design: 'PatchDesign',
+        color: 'cmyk(5%,5%,5%,5%)',
+        shirtSize: 'S',
+        Status: 'IN_PROGRESS',
+      },
+    })
+
+    const compositeId = `${order.orderNumber}.${pos.pos_number}`
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/position/${compositeId}`,
+      payload: { status: 'COMPLETED' as POSITION_STATUS },
+    })
+
+    expect(res.statusCode).toBe(200)
+    expect(res.body).toBe(
+      `Updated position status successfully to COMPLETED`
+    )
+
+    const updatedPos = await prisma.position.findUniqueOrThrow({
+      where: { id: pos.id },
+    })
+    expect(updatedPos.Status).toBe('COMPLETED')
+  })
+
+  it('POST /position/request-finished-goods – batch request', async () => {
+    // Seed Customer + Order + zwei Positionen
+    const customer = await prisma.customer.create({
+      data: {
+        id: randomUUID(),
+        name: 'Route-Testkunde',
+        email: `route-test-${Date.now()}@mail.com`,
+        phone: '0000',
+        customerType: 'WEBSHOP',
+      },
+    })
+    const order = await prisma.order.create({
+      data: {
+        id: randomUUID(),
+        customerId: customer.id,
+        orderNumber: '20250123',
+      },
+    })
+    const pos1 = await prisma.position.create({
+      data: {
+        orderId: order.id,
+        pos_number: 1,
+        amount: 3,
+        name: 'Test-Pos-1',
+        productCategory: 'T_SHIRT',
+        design: 'D1',
+        color: 'cmyk(10%,10%,10%,10%)',
+        shirtSize: 'S',
+        Status: 'READY_FOR_SHIPMENT',
+      },
+    })
+    const pos2 = await prisma.position.create({
+      data: {
+        orderId: order.id,
+        pos_number: 2,
+        amount: 5,
+        name: 'Test-Pos-2',
+        productCategory: 'T_SHIRT',
+        design: 'D2',
+        color: 'cmyk(20%,20%,20%,20%)',
+        shirtSize: 'M',
+        Status: 'READY_FOR_SHIPMENT',
+      },
+    })
+
+    // Mock-Verhalten definieren (Lösung 1)
+    const mockRequestFinishedGoods = requestFinishedGoods as MockedFunction<
+      typeof requestFinishedGoods
+    >
+    mockRequestFinishedGoods.mockResolvedValue({
+      message: 'Finished goods request sent successfully',
+      newStatus: 'READY_FOR_INSPECTION',
+    })
+
+    // Endpoint aufrufen
+    const res = await app.inject({
+      method: 'POST',
+      url: '/position/request-finished-goods',
+      payload: {
+        orderNumber: order.orderNumber,
+        positions: [{ id: pos1.id }, { id: pos2.id }],
+      },
+    })
+
+    // Assertions
+    expect(res.statusCode).toBe(200)
+    const body = res.json()
+    expect(body).toEqual({
+      orderNumber: order.orderNumber,
+      results: [
+        {
+          id: pos1.id,
+          message: 'Finished goods request sent successfully',
+          newStatus: 'READY_FOR_INSPECTION',
+        },
+        {
+          id: pos2.id,
+          message: 'Finished goods request sent successfully',
+          newStatus: 'READY_FOR_INSPECTION',
+        },
+      ],
+    })
+
+    // Sicherstellen, dass der Mock für jede Position aufgerufen wurde
+    expect(requestFinishedGoods).toHaveBeenCalledTimes(2)
+    expect(requestFinishedGoods).toHaveBeenCalledWith(pos1.id)
+    expect(requestFinishedGoods).toHaveBeenCalledWith(pos2.id)
   })
 })

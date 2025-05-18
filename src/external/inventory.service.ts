@@ -51,3 +51,24 @@ export async function createProductionOrder(input: unknown) {
     ...parsed,
   }
 }
+
+export async function requestFinishedGoods(positionId: string) {
+  const position = await prisma.position.findUnique({ where: { id: positionId } })
+
+  if (!position) {
+    throw new Error(`Position mit ID ${positionId} nicht gefunden.`)
+  }
+
+  const updated = await prisma.position.update({
+    where: { id: positionId },
+    data: {
+      Status: 'READY_FOR_INSPECTION'
+    },
+  })
+
+  return {
+    message: `Fertigware für Position ${positionId} wurde erfolgreich angefordert.`,
+    newStatus: updated.Status,
+  }
+}
+

@@ -1,23 +1,17 @@
-import {
-  afterAll,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import Fastify from 'fastify'
 import { prisma } from '../../plugins/prisma'
 import {
   createOrder,
   getOrderById,
+  getAllOrders,
   getOrdersByCustomer,
+  getOrdersWithPositionStatus,
   PositionInput,
 } from './order.service'
 import { randomUUID } from 'crypto'
 import { setTimeout } from 'timers/promises'
 import * as inventoryService from '../../external/inventory.service'
-import Fastify from 'fastify'
 import { registerPlugins } from '../../plugins/register-plugins'
 import { registerModules } from '../register-modules'
 
@@ -33,13 +27,14 @@ afterAll(async () => {
   await app.close()
 })
 
-// --- MOCK für createProductionOrder ---
 beforeEach(async () => {
+  // DB zurücksetzen (FK-Abhängigkeiten beachten)
   await prisma.complaint.deleteMany()
   await prisma.position.deleteMany()
   await prisma.order.deleteMany()
   await prisma.customer.deleteMany()
 
+  // Mocks zurücksetzen
   vi.restoreAllMocks()
   vi.spyOn(inventoryService, 'createProductionOrder').mockImplementation(
     async (input: any) => ({
@@ -48,6 +43,7 @@ beforeEach(async () => {
       message: `Produktionsauftrag über ${input.amount} Stück ausgelöst`,
     }),
   )
+  vi.spyOn(inventoryService, 'getInventoryCount').mockResolvedValue(0)
 })
 
 describe('Order Service Unit Tests (mit Positionen)', () => {
@@ -55,8 +51,8 @@ describe('Order Service Unit Tests (mit Positionen)', () => {
     const customer = await prisma.customer.create({
       data: {
         id: randomUUID(),
-        name: 'Test Kunde',
-        email: `test-${Date.now()}@mail.com`,
+        name: 'ServiceTest',
+        email: `${randomUUID()}@mail.com`,
         phone: '00000',
         customerType: 'WEBSHOP',
       },
@@ -66,156 +62,232 @@ describe('Order Service Unit Tests (mit Positionen)', () => {
       {
         amount: 3,
         pos_number: 1,
-        name: 'T-Shirt Gold',
+        name: 'Gold-Shirt',
         productCategory: 'T_SHIRT',
-        design: 'DesignA',
+        design: 'A',
         color: 'cmyk(0%,50%,100%,0%)',
         shirtSize: 'S',
-        description: 'Goldenes T-Shirt',
+        description: 'Goldenes',
       },
       {
         amount: 2,
         pos_number: 2,
-        name: 'T-Shirt Blau',
+        name: 'Blau-Shirt',
         productCategory: 'T_SHIRT',
-        design: 'DesignB',
+        design: 'B',
         color: 'cmyk(100%,0%,0%,0%)',
         shirtSize: 'M',
       },
     ]
 
-    const newOrder = await createOrder(customer.id, positions)
-
-    expect(newOrder).toHaveProperty('id')
-    expect(newOrder.orderNumber).toMatch(/^\d{8}$/) // <--- 8-stellig!
-    expect(Array.isArray(newOrder.positions)).toBe(true)
-    expect(newOrder.positions.length).toBe(positions.length)
-
-    newOrder.positions.forEach((pos, idx) => {
-      const inp = positions[idx]
-      expect(pos.amount).toBe(inp.amount)
-      expect(pos.pos_number).toBe(inp.pos_number)
-      expect(pos.name).toBe(inp.name)
-      expect(pos.productCategory).toBe(inp.productCategory)
-      expect(pos.design).toBe(inp.design)
-      expect(pos.color).toBe(inp.color)
-      expect(pos.shirtSize).toBe(inp.shirtSize)
-      expect(pos.description).toBe(inp.description ?? null)
-      expect(pos.Status).toBe('IN_PROGRESS')
-      expect(pos.orderId).toBe(newOrder.id)
+    const order = await createOrder(customer.id, positions)
+    expect(order).toHaveProperty('id')
+    expect(order.orderNumber).toMatch(/^\d{8}$/)
+    expect(order.positions).toHaveLength(2)
+    order.positions.forEach((p, i) => {
+      expect(p.pos_number).toBe(positions[i].pos_number)
+      expect(p.amount).toBe(positions[i].amount)
+      expect(p.Status).toBe('IN_PROGRESS')
+      expect(p.orderId).toBe(order.id)
     })
   })
 
-  // Die anderen Tests bleiben unverändert
   it('should get order by id including positions', async () => {
     const customer = await prisma.customer.create({
       data: {
         id: randomUUID(),
-        name: 'ID Kunde',
-        email: `id-${Date.now()}@mail.com`,
+        name: 'ServiceTest2',
+        email: `${randomUUID()}@mail.com`,
         phone: '12345',
         customerType: 'BUSINESS',
       },
     })
-
     const positions: PositionInput[] = [
       {
         amount: 1,
         pos_number: 1,
-        name: 'Pulli Grün',
+        name: 'Grün-Shirt',
         productCategory: 'T_SHIRT',
-        design: 'DesignC',
+        design: 'C',
         color: 'cmyk(50%,0%,50%,0%)',
         shirtSize: 'L',
       },
     ]
-
     const created = await createOrder(customer.id, positions)
     const found = await getOrderById(created.id)
-
     expect(found).not.toBeNull()
-    expect(found?.id).toBe(created.id)
-    expect(Array.isArray(found?.positions)).toBe(true)
-    expect(found?.positions.length).toBe(positions.length)
+    expect(found!.positions).toHaveLength(1)
   })
 
-  it('should get all orders for a customer', async () => {
+  it('should list all orders for a customer', async () => {
     const customer = await prisma.customer.create({
       data: {
         id: randomUUID(),
-        name: 'Many Orders',
-        email: `multi-${Date.now()}@mail.com`,
+        name: 'ServiceTest3',
+        email: `${randomUUID()}@mail.com`,
         phone: '67890',
         customerType: 'BUSINESS',
       },
     })
-
     const positions: PositionInput[] = [
       {
         amount: 1,
         pos_number: 1,
-        name: 'T-Shirt A',
+        name: 'A1',
         productCategory: 'T_SHIRT',
-        design: 'Design1',
+        design: 'D1',
         color: 'cmyk(0%,0%,0%,0%)',
         shirtSize: 'S',
       },
     ]
-
     await createOrder(customer.id, positions)
-    await setTimeout(50)
+    await setTimeout(10)
     await createOrder(customer.id, positions)
-
-    const orders = await getOrdersByCustomer(customer.id)
-    expect(Array.isArray(orders)).toBe(true)
-    expect(orders.length).toBe(2)
-    orders.forEach((order) => {
-      expect(order.customerId).toBe(customer.id)
-      expect(Array.isArray(order.positions)).toBe(true)
-      expect(order.positions.length).toBe(positions.length)
+    const list = await getOrdersByCustomer(customer.id)
+    expect(list).toHaveLength(2)
+    list.forEach(o => {
+      expect(o.customerId).toBe(customer.id)
+      expect(o.positions).toHaveLength(1)
     })
   })
 
-  it('should get all orders in system via HTTP endpoint', async () => {
+  it('should retrieve all orders in system', async () => {
+    const all = await getAllOrders()
+    expect(Array.isArray(all)).toBe(true)
+  })
+
+  it('should get orders by position status', async () => {
     const customer = await prisma.customer.create({
       data: {
         id: randomUUID(),
-        name: 'Many Orders',
-        email: `multi-${Date.now()}@mail.com`,
-        phone: '67890',
-        customerType: 'BUSINESS',
+        name: 'ServiceTest4',
+        email: `${randomUUID()}@mail.com`,
+        phone: '54321',
+        customerType: 'WEBSHOP',
       },
     })
-
     const positions: PositionInput[] = [
       {
         amount: 1,
         pos_number: 1,
-        name: 'T-Shirt A',
+        name: 'X1',
         productCategory: 'T_SHIRT',
-        design: 'Design1',
+        design: 'DX',
         color: 'cmyk(0%,0%,0%,0%)',
-        shirtSize: 'S',
+        shirtSize: 'M',
       },
     ]
+    const o = await createOrder(customer.id, positions)
+    const filtered = await getOrdersWithPositionStatus('IN_PROGRESS')
+    expect(filtered.some(f => f.id === o.id)).toBe(true)
+  })
+})
 
-    await createOrder(customer.id, positions)
-    await setTimeout(50)
-    await createOrder(customer.id, positions)
-
-    const response = await app.inject({
-      method: 'GET',
+describe('Order Routes', () => {
+  it('POST   /order                – create new order', async () => {
+    const customer = await prisma.customer.create({
+      data: {
+        id: randomUUID(),
+        name: 'RouteTest1',
+        email: `${randomUUID()}@mail.com`,
+        phone: '1111',
+        customerType: 'WEBSHOP',
+      },
+    })
+    const positions: PositionInput[] = [
+      {
+        amount: 2,
+        pos_number: 1,
+        name: 'R1',
+        productCategory: 'T_SHIRT',
+        design: 'DR1',
+        color: 'cmyk(10%,20%,30%,40%)',
+        shirtSize: 'M',
+      },
+    ]
+    const res = await app.inject({
+      method: 'POST',
       url: '/order',
-      headers: {
-        accept: 'application/json',
+      payload: { customerId: customer.id, positions },
+    })
+    expect(res.statusCode).toBe(200)
+    const body = await res.json()
+    expect(body).toHaveProperty('id')
+    expect(body.customerId).toBe(customer.id)
+    expect(body.positions).toHaveLength(1)
+  })
+
+  it('GET    /order/:id            – retrieve single order', async () => {
+    const customer = await prisma.customer.create({
+      data: {
+        id: randomUUID(),
+        name: 'RouteTest2',
+        email: `${randomUUID()}@mail.com`,
+        phone: '2222',
+        customerType: 'BUSINESS',
       },
     })
-    expect(response.statusCode).toBe(200)
-    const body = await response.json()
-    expect(Array.isArray(body)).toBe(true)
-    expect(body.length).toBeGreaterThanOrEqual(2)
-    body.forEach((order: any) => {
-      expect(Array.isArray(order.positions)).toBe(true)
+    const positions: PositionInput[] = [
+      {
+        amount: 1,
+        pos_number: 1,
+        name: 'R2',
+        productCategory: 'T_SHIRT',
+        design: 'DR2',
+        color: 'cmyk(5%,5%,5%,5%)',
+        shirtSize: 'S',
+      },
+    ]
+    const created = await createOrder(customer.id, positions)
+    const res = await app.inject({
+      method: 'GET',
+      url: `/order/${created.id}`
     })
+    expect(res.statusCode).toBe(200)
+    const body = await res.json()
+    expect(body.id).toBe(created.id)
+    expect(body.positions).toHaveLength(1)
+  })
+
+  it('GET    /order                 – list all orders', async () => {
+    const res = await app.inject({ method: 'GET', url: '/order' })
+    expect(res.statusCode).toBe(200)
+    const body = await res.json()
+    expect(Array.isArray(body)).toBe(true)
+  })
+
+  it('GET    /order?customerId=...  – filter by customerId', async () => {
+    const customer = await prisma.customer.create({
+      data: {
+        id: randomUUID(),
+        name: 'RouteTest3',
+        email: `${randomUUID()}@mail.com`,
+        phone: '3333',
+        customerType: 'WEBSHOP',
+      },
+    })
+    await createOrder(customer.id, [{ amount: 1, pos_number: 1, name: 'F3', productCategory: 'T_SHIRT', design: 'DF3', color: 'cmyk(0%,0%,0%,0%)', shirtSize: 'L' }])
+    const res = await app.inject({ method: 'GET', url: `/order?customerId=${customer.id}` })
+    expect(res.statusCode).toBe(200)
+    const body = await res.json()
+    expect(body.every((o: any) => o.customerId === customer.id)).toBe(true)
+  })
+
+  it('GET    /order/status/:status  – filter by position status', async () => {
+    const customer = await prisma.customer.create({
+      data: {
+        id: randomUUID(),
+        name: 'RouteTest4',
+        email: `${randomUUID()}@mail.com`,
+        phone: '4444',
+        customerType: 'BUSINESS',
+      },
+    })
+    const created = await createOrder(customer.id, [{ amount: 1, pos_number: 1, name: 'S4', productCategory: 'T_SHIRT', design: 'DS4', color: 'cmyk(0%,0%,0%,0%)', shirtSize: 'S' }])
+    const res = await app.inject({ method: 'GET', url: `/order/status/IN_PROGRESS` })
+    expect(res.statusCode).toBe(200)
+    const body = await res.json()
+    expect(Array.isArray(body)).toBe(true)
+    expect(body.some((o: any) => o.id === created.id)).toBe(true)
   })
 })

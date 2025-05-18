@@ -1,36 +1,113 @@
 import { FastifyInstance } from 'fastify'
 import { zodToJsonSchema } from 'zod-to-json-schema'
-import { updatePositionStatusByBusinessKey } from './position.service'
+
 import {
-  positionParamsSchema,
+  createPosition,
+  updatePositionStatusByBusinessKey,
+} from './position.service'
+import { requestFinishedGoods } from '../../external/inventory.service'
+
+import {
+  positionCreateSchema,
   positionStatusPatchSchema,
+  requestFinishedGoodsSchema,
+  positionResponseSchema,
 } from './position.schema'
-import { $Enums } from '../../../generated/prisma'
-import POSITION_STATUS = $Enums.POSITION_STATUS
 
 export default async function positionRoutes(fastify: FastifyInstance) {
-  // PATCH
+  // PATCH /:compositeId
   fastify.patch('/:compositeId', {
     schema: {
       tags: ['Position'],
       description:
         'Update the status of an existing position using a composite business key',
-      body: zodToJsonSchema(positionStatusPatchSchema),
+      params: zodToJsonSchema(positionStatusPatchSchema.shape.params),
+      body: zodToJsonSchema(positionStatusPatchSchema.shape.body),
+      response: {
+        200: { type: 'string' },
+      },
+    },
+    handler: async (request, reply) => {
+      const { compositeId } = positionStatusPatchSchema.shape.params.parse(
+        request.params,
+      )
+      const { status } = positionStatusPatchSchema.shape.body.parse(
+        request.body,
+      )
+      const updated = await updatePositionStatusByBusinessKey(
+        compositeId,
+        status,
+      )
+      reply.send(`Updated position status successfully to ${updated.Status}`)
+    },
+  })
+
+  // POST / - create new position
+  fastify.post('/', {
+    schema: {
+      tags: ['Position'],
+      description: 'Create a new production position',
+      body: zodToJsonSchema(positionCreateSchema.shape.body),
+      response: {
+        200: zodToJsonSchema(positionResponseSchema),
+      },
+    },
+    handler: async (request, reply) => {
+      const data = positionCreateSchema.shape.body.parse(request.body)
+      const pos = await createPosition(
+        data.orderId,
+        data.amount,
+        data.pos_number,
+        data.name,
+        data.productCategory,
+        data.design,
+        data.color,
+        data.shirtSize,
+        data.description ?? undefined,
+      )
+      reply.send(pos)
+    },
+  })
+
+  // POST /request-finished-goods
+  fastify.post('/request-finished-goods', {
+    schema: {
+      tags: ['Position'],
+      description:
+        'Request finished goods for multiple positions and update statuses',
+      body: zodToJsonSchema(requestFinishedGoodsSchema.shape.body),
       response: {
         200: {
-          type: 'string',
-          example: 'Updated position status successfully to SHIPPED',
+          type: 'object',
+          properties: {
+            orderNumber: { type: 'string' },
+            results: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string', format: 'uuid' },
+                  message: { type: 'string' },
+                  newStatus: { type: 'string' },
+                },
+                required: ['id', 'message', 'newStatus'],
+              },
+            },
+          },
         },
       },
     },
     handler: async (request, reply) => {
-      const { compositeId } = positionParamsSchema.parse(request.params)
-      const { status } = positionStatusPatchSchema.parse(request.body)
-      const updated = await updatePositionStatusByBusinessKey(
-        compositeId,
-        status as POSITION_STATUS,
-      )
-      reply.send('Updated position status successfully to ' + updated.Status)
+      const { orderNumber, positions } =
+        requestFinishedGoodsSchema.shape.body.parse(request.body)
+      const results: Array<{ id: string; message: string; newStatus: string }> = []
+
+      for (const pos of positions) {
+        const res = await requestFinishedGoods(pos.id)
+        results.push({ id: pos.id, message: res.message, newStatus: res.newStatus })
+      }
+
+      reply.send({ orderNumber, results })
     },
   })
 }

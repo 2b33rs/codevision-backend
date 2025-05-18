@@ -6,12 +6,16 @@ import {
   afterAll,
   beforeEach,
   afterEach,
+  vi,
 } from 'vitest'
 import Fastify from 'fastify'
 import { registerPlugins } from '../../plugins/register-plugins'
 import { registerModules } from '../register-modules'
 import { prisma } from '../../plugins/prisma'
 import { randomUUID } from 'crypto'
+
+// Alle Endpoints laut customer.routes.ts: POST /customer, GET /customer, GET /customer/:id, PUT /customer/:id,
+// GET /customer/:id/meta, DELETE /customer/:id :contentReference[oaicite:0]{index=0}:contentReference[oaicite:1]{index=1}
 
 let app: ReturnType<typeof Fastify>
 
@@ -26,43 +30,46 @@ afterAll(async () => {
 })
 
 beforeEach(async () => {
+  // Transaktion starten, damit jeder Test isoliert ist
   await prisma.$executeRawUnsafe('BEGIN')
 })
 
 afterEach(async () => {
+  // Zurückrollen
   await prisma.$executeRawUnsafe('ROLLBACK')
 })
 
-describe('Customer Routes E2E', () => {
-  it('should create a customer', async () => {
+describe('Customer Routes – vollständige Abdeckung', () => {
+  it('POST   /customer                   – create a customer', async () => {
+    const payload = {
+      name: 'Test Kunde',
+      email: `test-${randomUUID()}@mail.com`,
+      phone: '123456789',
+      addr_country: 'DE',
+      addr_city: 'Berlin',
+      addr_zip: '10115',
+      addr_street: 'Musterstraße',
+      addr_line1: 'Haus 1',
+      addr_line2: 'Etage 3',
+      customerType: 'WEBSHOP',
+    }
     const res = await app.inject({
       method: 'POST',
       url: '/customer',
-      payload: {
-        name: 'Test Kunde',
-        email: `test-${Date.now()}@mail.com`,
-        phone: '123456789',
-        addr_country: 'DE',
-        addr_city: 'Berlin',
-        addr_zip: '10115',
-        addr_street: 'Musterstraße',
-        addr_line1: 'Haus 1',
-        addr_line2: 'Etage 3',
-        customerType: 'WEBSHOP',
-      },
+      payload,
     })
-
     expect(res.statusCode).toBe(200)
-    const customer = JSON.parse(res.body)
-    expect(customer).toHaveProperty('id')
-    expect(customer.name).toBe('Test Kunde')
+    const body = res.json()
+    expect(body).toHaveProperty('id')
+    expect(body.name).toBe(payload.name)
+    expect(body.email).toBe(payload.email)
   })
 
-  it('should list all customers', async () => {
+  it('GET    /customer                   – list all customers', async () => {
     await prisma.customer.create({
       data: {
         name: 'List Kunde',
-        email: `list-${Date.now()}@mail.com`,
+        email: `list-${randomUUID()}@mail.com`,
         phone: '987654321',
         addr_country: 'DE',
         addr_city: 'Hamburg',
@@ -73,23 +80,18 @@ describe('Customer Routes E2E', () => {
         customerType: 'BUSINESS',
       },
     })
-
-    const res = await app.inject({
-      method: 'GET',
-      url: '/customer',
-    })
-
+    const res = await app.inject({ method: 'GET', url: '/customer' })
     expect(res.statusCode).toBe(200)
-    const customers = JSON.parse(res.body)
-    expect(Array.isArray(customers)).toBe(true)
-    expect(customers.length).toBeGreaterThan(0)
+    const list = res.json()
+    expect(Array.isArray(list)).toBe(true)
+    expect(list.length).toBeGreaterThan(0)
   })
 
-  it('should get a customer by ID', async () => {
-    const customer = await prisma.customer.create({
+  it('GET    /customer/:id               – get existing customer', async () => {
+    const created = await prisma.customer.create({
       data: {
         name: 'Single Kunde',
-        email: `single-${Date.now()}@mail.com`,
+        email: `single-${randomUUID()}@mail.com`,
         phone: '456789123',
         addr_country: 'DE',
         addr_city: 'Munich',
@@ -100,71 +102,131 @@ describe('Customer Routes E2E', () => {
         customerType: 'WEBSHOP',
       },
     })
-
     const res = await app.inject({
       method: 'GET',
-      url: `/customer/${customer.id}`,
+      url: `/customer/${created.id}`,
     })
-
     expect(res.statusCode).toBe(200)
-    const result = JSON.parse(res.body)
-    expect(result.name).toBe(customer.name)
+    const body = res.json()
+    expect(body.id).toBe(created.id)
+    expect(body.name).toBe(created.name)
   })
 
-  it('should update a customer by ID', async () => {
-    const customer = await prisma.customer.create({
+  it('GET    /customer/:id               – 404 for non-existing', async () => {
+    const fakeId = randomUUID()
+    const res = await app.inject({
+      method: 'GET',
+      url: `/customer/${fakeId}`,
+    })
+    expect(res.statusCode).toBe(404)
+    const body = res.json()
+    expect(body).toHaveProperty('message')
+  })
+
+  it('PUT    /customer/:id               – update existing customer', async () => {
+    const created = await prisma.customer.create({
       data: {
-        name: 'Update Kunde',
-        email: `update-${Date.now()}@mail.com`,
-        phone: '123123123',
+        name: 'Up Kunde',
+        email: `up-${randomUUID()}@mail.com`,
+        phone: '111222333',
         addr_country: 'DE',
-        addr_city: 'Cologne',
-        addr_zip: '50667',
-        addr_street: 'Domstraße',
-        addr_line1: 'Haus 4',
-        addr_line2: 'Etage 6',
+        addr_city: 'Leipzig',
+        addr_zip: '04109',
+        addr_street: 'Markt',
+        addr_line1: 'Haus 10',
+        addr_line2: 'Etage 2',
         customerType: 'BUSINESS',
       },
     })
-
     const res = await app.inject({
       method: 'PUT',
-      url: `/customer/${customer.id}`,
-      payload: {
-        name: 'Updated Kunde',
-        phone: '321321321',
-      },
+      url: `/customer/${created.id}`,
+      payload: { name: 'Updated Kunde', phone: '999888777' },
     })
-
     expect(res.statusCode).toBe(200)
-    const updatedCustomer = JSON.parse(res.body)
-    expect(updatedCustomer.name).toBe('Updated Kunde')
-    expect(updatedCustomer.phone).toBe('321321321')
+    const updated = res.json()
+    expect(updated.name).toBe('Updated Kunde')
+    expect(updated.phone).toBe('999888777')
   })
 
-  it('should delete a customer by ID', async () => {
-    const customer = await prisma.customer.create({
+  it('PUT    /customer/:id               – 404 on update non-existing', async () => {
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/customer/${randomUUID()}`,
+      payload: { name: 'Nope' },
+    })
+    expect(res.statusCode).toBe(404)
+    const body = res.json()
+    expect(body).toHaveProperty('message')
+  })
+
+  it('GET    /customer/:id/meta          – meta for existing', async () => {
+    // Kunde ohne Orders => canDelete: true
+    const created = await prisma.customer.create({
       data: {
-        name: 'Delete Kunde',
-        email: `delete-${Date.now()}@mail.com`,
-        phone: '789789789',
+        name: 'Meta Kunde',
+        email: `meta-${randomUUID()}@mail.com`,
+        phone: '555666777',
         addr_country: 'DE',
-        addr_city: 'Frankfurt',
-        addr_zip: '60311',
-        addr_street: 'Zeil',
-        addr_line1: 'Haus 5',
-        addr_line2: 'Etage 7',
+        addr_city: 'Stuttgart',
+        addr_zip: '70173',
+        addr_street: 'Königstraße',
+        addr_line1: 'Haus 1',
+        addr_line2: '',
         customerType: 'WEBSHOP',
       },
     })
+    const res = await app.inject({
+      method: 'GET',
+      url: `/customer/${created.id}/meta`,
+    })
+    expect(res.statusCode).toBe(200)
+    const body = res.json()
+    expect(body).toHaveProperty('orderCount', 0)
+    expect(body).toHaveProperty('canDelete', true)
+  })
 
+  it('GET    /customer/:id/meta          – 404 for non-existing', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: `/customer/${randomUUID()}/meta`,
+    })
+    expect(res.statusCode).toBe(404)
+    const body = res.json()
+    expect(body).toHaveProperty('message')
+  })
+
+  it('DELETE /customer/:id               – delete existing customer', async () => {
+    const created = await prisma.customer.create({
+      data: {
+        name: 'Del Kunde',
+        email: `del-${randomUUID()}@mail.com`,
+        phone: '444555666',
+        addr_country: 'DE',
+        addr_city: 'Dresden',
+        addr_zip: '01067',
+        addr_street: 'Prager Straße',
+        addr_line1: 'Haus 5',
+        addr_line2: '',
+        customerType: 'BUSINESS',
+      },
+    })
     const res = await app.inject({
       method: 'DELETE',
-      url: `/customer/${customer.id}`,
+      url: `/customer/${created.id}`,
     })
-
     expect(res.statusCode).toBe(200)
-    const deletedCustomer = JSON.parse(res.body)
-    expect(deletedCustomer.name).toBe(customer.name)
+    const body = res.json()
+    expect(body.id).toBe(created.id)
+  })
+
+  it('DELETE /customer/:id               – 404 for non-existing', async () => {
+    const res = await app.inject({
+      method: 'DELETE',
+      url: `/customer/${randomUUID()}`,
+    })
+    expect(res.statusCode).toBe(404)
+    const body = res.json()
+    expect(body).toHaveProperty('message')
   })
 })
