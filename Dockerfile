@@ -12,7 +12,7 @@ RUN npm install
 COPY . .
 
 # Prisma Client generieren
-RUN npx prisma migrate reset --force
+RUN npx prisma generate
 
 # TypeScript build
 RUN npm run build
