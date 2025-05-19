@@ -98,6 +98,7 @@ async function main() {
                   ComplaintReason: faker.helpers.arrayElement(reasons),
                   ComplaintKind: faker.helpers.arrayElement(kinds),
                   createNewOrder: faker.datatype.boolean(),
+                  updatedAt: faker.date.recent({ days: 30 }),
                 },
               },
             },
