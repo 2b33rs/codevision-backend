@@ -84,7 +84,8 @@ async function main() {
               name: faker.commerce.productName(),
               description: faker.commerce.productDescription(),
               amount: faker.number.int({ min: 1, max: 10 }),
-              design: faker.lorem.word(),
+              design: `https://picsum.photos/id/${faker.number.int({ min: 1, max: 100 })}/200/300`,
+
               color: `cmyk(${Array.from({ length: 4 })
                 .map(() => `${faker.number.int({ min: 0, max: 100 })}%`)
                 .join(',')})`,
@@ -109,7 +110,7 @@ async function main() {
               name: faker.commerce.productName(),
               description: faker.commerce.productDescription(),
               amount: faker.number.int({ min: 1, max: 10 }),
-              design: faker.lorem.word(),
+              design: `https://picsum.photos/id/${faker.number.int({ min: 1, max: 100 })}/200/300`,
               color: `cmyk(${Array.from({ length: 4 })
                 .map(() => `${faker.number.int({ min: 0, max: 100 })}%`)
                 .join(',')})`,
