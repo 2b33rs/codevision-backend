@@ -1,13 +1,12 @@
-import { describe, expect, it, MockedFunction } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { prisma } from '../../plugins/prisma'
 import {
   createPosition,
   updatePositionStatusByBusinessKey,
 } from './position.service'
-import { requestFinishedGoods } from '../../external/inventory.service'
-import { randomUUID } from 'crypto'
 import { $Enums } from '../../../generated/prisma'
 import { app } from '../../vitest.setup'
+import { makeCustomer, makeOrder, makePosition } from '../../utils/test.factory'
 
 type ProductCategory = $Enums.ProductCategory
 type ShirtSize = $Enums.ShirtSize
@@ -15,23 +14,8 @@ type POSITION_STATUS = $Enums.POSITION_STATUS
 
 describe('Position Service Unit Tests', () => {
   it('should create a new position with valid data', async () => {
-    const customer = await prisma.customer.create({
-      data: {
-        id: randomUUID(),
-        name: 'Pos-Testkunde',
-        email: `pos-test-${Date.now()}@mail.com`,
-        phone: '7777',
-        customerType: 'WEBSHOP',
-      },
-    })
-
-    const order = await prisma.order.create({
-      data: {
-        id: randomUUID(),
-        customerId: customer.id,
-        orderNumber: '20240001',
-      },
-    })
+    const customer = await makeCustomer()
+    const order = await makeOrder(customer.id)
 
     const pos = await createPosition(
       order.id,
@@ -56,23 +40,8 @@ describe('Position Service Unit Tests', () => {
   })
 
   it('should update the status of a position by composite key', async () => {
-    const customer = await prisma.customer.create({
-      data: {
-        id: randomUUID(),
-        name: 'Update Testkunde',
-        email: `update-pos-${Date.now()}@mail.com`,
-        phone: '9999',
-        customerType: 'WEBSHOP',
-      },
-    })
-
-    const order = await prisma.order.create({
-      data: {
-        id: randomUUID(),
-        customerId: customer.id,
-        orderNumber: '20240002',
-      },
-    })
+    const customer = await makeCustomer()
+    const order = await makeOrder(customer.id)
 
     const product = await prisma.standardProduct.create({
       data: {
@@ -85,19 +54,16 @@ describe('Position Service Unit Tests', () => {
       },
     })
 
-    const pos = await prisma.position.create({
-      data: {
-        orderId: order.id,
-        pos_number: 2,
-        amount: 3,
-        name: 'Status-Test-Posi',
-        productCategory: 'T_SHIRT',
-        design: 'DesignA',
-        color: 'cmyk(1%,1%,1%,1%)',
-        shirtSize: 'M',
-        Status: 'IN_PROGRESS',
-        standardProductId: product.id,
-      },
+    const pos = await makePosition(order.id, {
+      pos_number: 2,
+      amount: 3,
+      name: 'Status-Test-Posi',
+      productCategory: 'T_SHIRT',
+      design: 'DesignA',
+      color: 'cmyk(1%,1%,1%,1%)',
+      shirtSize: 'M',
+      Status: 'IN_PROGRESS',
+      standardProductId: product.id,
     })
 
     const compositeId = `${order.orderNumber}.${pos.pos_number}`
@@ -120,22 +86,8 @@ describe('Position Service Unit Tests', () => {
 describe('Position Routes', () => {
   it('POST /position – create new position', async () => {
     // Seed Customer + Order
-    const customer = await prisma.customer.create({
-      data: {
-        id: randomUUID(),
-        name: 'Route-Create-Kunde',
-        email: `route-create-${Date.now()}@mail.com`,
-        phone: '1111',
-        customerType: 'WEBSHOP',
-      },
-    })
-    const order = await prisma.order.create({
-      data: {
-        id: randomUUID(),
-        customerId: customer.id,
-        orderNumber: '20250201',
-      },
-    })
+    const customer = await makeCustomer()
+    const order = await makeOrder(customer.id)
 
     const payload = {
       orderId: order.id,
@@ -174,35 +126,9 @@ describe('Position Routes', () => {
 
   it('PATCH /position/:compositeId – update status', async () => {
     // Seed Customer + Order + Position
-    const customer = await prisma.customer.create({
-      data: {
-        id: randomUUID(),
-        name: 'Route-Patch-Kunde',
-        email: `route-patch-${Date.now()}@mail.com`,
-        phone: '2222',
-        customerType: 'WEBSHOP',
-      },
-    })
-    const order = await prisma.order.create({
-      data: {
-        id: randomUUID(),
-        customerId: customer.id,
-        orderNumber: '20250202',
-      },
-    })
-    const pos = await prisma.position.create({
-      data: {
-        orderId: order.id,
-        pos_number: 5,
-        amount: 2,
-        name: 'Patch-Test-Pos',
-        productCategory: 'T_SHIRT',
-        design: 'PatchDesign',
-        color: 'cmyk(5%,5%,5%,5%)',
-        shirtSize: 'S',
-        Status: 'IN_PROGRESS',
-      },
-    })
+    const customer = await makeCustomer()
+    const order = await makeOrder(customer.id)
+    const pos = await makePosition(order.id, { pos_number: 5 })
 
     const compositeId = `${order.orderNumber}.${pos.pos_number}`
 
@@ -223,47 +149,15 @@ describe('Position Routes', () => {
 
   it('POST /position/request-finished-goods – batch request', async () => {
     // Seed Customer + Order + zwei Positionen
-    const customer = await prisma.customer.create({
-      data: {
-        id: randomUUID(),
-        name: 'Route-Testkunde',
-        email: `route-test-${Date.now()}@mail.com`,
-        phone: '0000',
-        customerType: 'WEBSHOP',
-      },
+    const customer = await makeCustomer()
+    const order = await makeOrder(customer.id)
+    const pos1 = await makePosition(order.id, {
+      pos_number: 1,
+      Status: 'READY_FOR_SHIPMENT',
     })
-    const order = await prisma.order.create({
-      data: {
-        id: randomUUID(),
-        customerId: customer.id,
-        orderNumber: '20250123',
-      },
-    })
-    const pos1 = await prisma.position.create({
-      data: {
-        orderId: order.id,
-        pos_number: 1,
-        amount: 3,
-        name: 'Test-Pos-1',
-        productCategory: 'T_SHIRT',
-        design: 'D1',
-        color: 'cmyk(10%,10%,10%,10%)',
-        shirtSize: 'S',
-        Status: 'READY_FOR_SHIPMENT',
-      },
-    })
-    const pos2 = await prisma.position.create({
-      data: {
-        orderId: order.id,
-        pos_number: 2,
-        amount: 5,
-        name: 'Test-Pos-2',
-        productCategory: 'T_SHIRT',
-        design: 'D2',
-        color: 'cmyk(20%,20%,20%,20%)',
-        shirtSize: 'M',
-        Status: 'READY_FOR_SHIPMENT',
-      },
+    const pos2 = await makePosition(order.id, {
+      pos_number: 2,
+      Status: 'READY_FOR_SHIPMENT',
     })
 
     // Endpoint aufrufen

@@ -1,9 +1,7 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { app } from '../../vitest.setup'
-import { registerPlugins } from '../../plugins/register-plugins'
-import { registerModules } from '../register-modules'
-import { prisma } from '../../plugins/prisma'
 import { randomUUID } from 'crypto'
+import { makeCustomer } from '../../utils/test.factory'
 
 describe('Customer Routes – vollständige Abdeckung', () => {
   it('POST   /customer                   – create a customer', async () => {
@@ -32,19 +30,17 @@ describe('Customer Routes – vollständige Abdeckung', () => {
   })
 
   it('GET    /customer                   – list all customers', async () => {
-    await prisma.customer.create({
-      data: {
-        name: 'List Kunde',
-        email: `list-${randomUUID()}@mail.com`,
-        phone: '987654321',
-        addr_country: 'DE',
-        addr_city: 'Hamburg',
-        addr_zip: '20095',
-        addr_street: 'Beispielstraße',
-        addr_line1: 'Haus 2',
-        addr_line2: 'Etage 4',
-        customerType: 'BUSINESS',
-      },
+    await makeCustomer({
+      addr_country: 'DE',
+      addr_city: 'Hamburg',
+      addr_zip: '20095',
+      addr_street: 'Beispielstraße',
+      addr_line1: 'Haus 2',
+      addr_line2: 'Etage 4',
+      customerType: 'BUSINESS',
+      phone: '987654321',
+      name: 'List Kunde',
+      email: `list-${randomUUID()}@mail.com`,
     })
     const res = await app.inject({ method: 'GET', url: '/customer' })
     expect(res.statusCode).toBe(200)
@@ -54,19 +50,17 @@ describe('Customer Routes – vollständige Abdeckung', () => {
   })
 
   it('GET    /customer/:id               – get existing customer', async () => {
-    const created = await prisma.customer.create({
-      data: {
-        name: 'Single Kunde',
-        email: `single-${randomUUID()}@mail.com`,
-        phone: '456789123',
-        addr_country: 'DE',
-        addr_city: 'Munich',
-        addr_zip: '80331',
-        addr_street: 'Hauptstraße',
-        addr_line1: 'Haus 3',
-        addr_line2: 'Etage 5',
-        customerType: 'WEBSHOP',
-      },
+    const created = await makeCustomer({
+      addr_country: 'DE',
+      addr_city: 'Munich',
+      addr_zip: '80331',
+      addr_street: 'Hauptstraße',
+      addr_line1: 'Haus 3',
+      addr_line2: 'Etage 5',
+      customerType: 'WEBSHOP',
+      phone: '456789123',
+      name: 'Single Kunde',
+      email: `single-${randomUUID()}@mail.com`,
     })
     const res = await app.inject({
       method: 'GET',
@@ -90,19 +84,17 @@ describe('Customer Routes – vollständige Abdeckung', () => {
   })
 
   it('PUT    /customer/:id               – update existing customer', async () => {
-    const created = await prisma.customer.create({
-      data: {
-        name: 'Up Kunde',
-        email: `up-${randomUUID()}@mail.com`,
-        phone: '111222333',
-        addr_country: 'DE',
-        addr_city: 'Leipzig',
-        addr_zip: '04109',
-        addr_street: 'Markt',
-        addr_line1: 'Haus 10',
-        addr_line2: 'Etage 2',
-        customerType: 'BUSINESS',
-      },
+    const created = await makeCustomer({
+      addr_country: 'DE',
+      addr_city: 'Leipzig',
+      addr_zip: '04109',
+      addr_street: 'Markt',
+      addr_line1: 'Haus 10',
+      addr_line2: 'Etage 2',
+      customerType: 'BUSINESS',
+      phone: '111222333',
+      name: 'Up Kunde',
+      email: `up-${randomUUID()}@mail.com`,
     })
     const res = await app.inject({
       method: 'PUT',
@@ -128,19 +120,17 @@ describe('Customer Routes – vollständige Abdeckung', () => {
 
   it('GET    /customer/:id/meta          – meta for existing', async () => {
     // Kunde ohne Orders => canDelete: true
-    const created = await prisma.customer.create({
-      data: {
-        name: 'Meta Kunde',
-        email: `meta-${randomUUID()}@mail.com`,
-        phone: '555666777',
-        addr_country: 'DE',
-        addr_city: 'Stuttgart',
-        addr_zip: '70173',
-        addr_street: 'Königstraße',
-        addr_line1: 'Haus 1',
-        addr_line2: '',
-        customerType: 'WEBSHOP',
-      },
+    const created = await makeCustomer({
+      addr_country: 'DE',
+      addr_city: 'Stuttgart',
+      addr_zip: '70173',
+      addr_street: 'Königstraße',
+      addr_line1: 'Haus 1',
+      addr_line2: '',
+      customerType: 'WEBSHOP',
+      phone: '555666777',
+      name: 'Meta Kunde',
+      email: `meta-${randomUUID()}@mail.com`,
     })
     const res = await app.inject({
       method: 'GET',
@@ -163,19 +153,17 @@ describe('Customer Routes – vollständige Abdeckung', () => {
   })
 
   it('DELETE /customer/:id               – delete existing customer', async () => {
-    const created = await prisma.customer.create({
-      data: {
-        name: 'Del Kunde',
-        email: `del-${randomUUID()}@mail.com`,
-        phone: '444555666',
-        addr_country: 'DE',
-        addr_city: 'Dresden',
-        addr_zip: '01067',
-        addr_street: 'Prager Straße',
-        addr_line1: 'Haus 5',
-        addr_line2: '',
-        customerType: 'BUSINESS',
-      },
+    const created = await makeCustomer({
+      addr_country: 'DE',
+      addr_city: 'Dresden',
+      addr_zip: '01067',
+      addr_street: 'Prager Straße',
+      addr_line1: 'Haus 5',
+      addr_line2: '',
+      customerType: 'BUSINESS',
+      phone: '444555666',
+      name: 'Del Kunde',
+      email: `del-${randomUUID()}@mail.com`,
     })
     const res = await app.inject({
       method: 'DELETE',

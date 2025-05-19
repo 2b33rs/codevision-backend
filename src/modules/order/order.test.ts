@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { app } from '../../vitest.setup'
-import { prisma } from '../../plugins/prisma'
+import { makeCustomer, makeOrder, makePosition } from '../../utils/test.factory'
 import {
   createOrder,
   getAllOrders,
@@ -9,20 +9,11 @@ import {
   getOrdersWithPositionStatus,
   PositionInput,
 } from './order.service'
-import { randomUUID } from 'crypto'
 import { setTimeout } from 'timers/promises'
 
 describe('Order Service Unit Tests (mit Positionen)', () => {
   it('should create a new order with positions and incremented order number', async () => {
-    const customer = await prisma.customer.create({
-      data: {
-        id: randomUUID(),
-        name: 'ServiceTest',
-        email: `${randomUUID()}@mail.com`,
-        phone: '00000',
-        customerType: 'WEBSHOP',
-      },
-    })
+    const customer = await makeCustomer()
 
     const positions: PositionInput[] = [
       {
@@ -59,15 +50,7 @@ describe('Order Service Unit Tests (mit Positionen)', () => {
   })
 
   it('should get order by id including positions', async () => {
-    const customer = await prisma.customer.create({
-      data: {
-        id: randomUUID(),
-        name: 'ServiceTest2',
-        email: `${randomUUID()}@mail.com`,
-        phone: '12345',
-        customerType: 'BUSINESS',
-      },
-    })
+    const customer = await makeCustomer()
     const positions: PositionInput[] = [
       {
         amount: 1,
@@ -86,15 +69,7 @@ describe('Order Service Unit Tests (mit Positionen)', () => {
   })
 
   it('should list all orders for a customer', async () => {
-    const customer = await prisma.customer.create({
-      data: {
-        id: randomUUID(),
-        name: 'ServiceTest3',
-        email: `${randomUUID()}@mail.com`,
-        phone: '67890',
-        customerType: 'BUSINESS',
-      },
-    })
+    const customer = await makeCustomer()
     const positions: PositionInput[] = [
       {
         amount: 1,
@@ -123,15 +98,7 @@ describe('Order Service Unit Tests (mit Positionen)', () => {
   })
 
   it('should get orders by position status', async () => {
-    const customer = await prisma.customer.create({
-      data: {
-        id: randomUUID(),
-        name: 'ServiceTest4',
-        email: `${randomUUID()}@mail.com`,
-        phone: '54321',
-        customerType: 'WEBSHOP',
-      },
-    })
+    const customer = await makeCustomer()
     const positions: PositionInput[] = [
       {
         amount: 1,
@@ -151,14 +118,10 @@ describe('Order Service Unit Tests (mit Positionen)', () => {
 
 describe('Order Routes', () => {
   it('POST   /order                – create new order', async () => {
-    const customer = await prisma.customer.create({
-      data: {
-        id: randomUUID(),
-        name: 'RouteTest1',
-        email: `${randomUUID()}@mail.com`,
-        phone: '1111',
-        customerType: 'WEBSHOP',
-      },
+    const customer = await makeCustomer({
+      name: 'RouteTest1',
+      phone: '1111',
+      customerType: 'WEBSHOP',
     })
     const positions: PositionInput[] = [
       {
@@ -184,14 +147,10 @@ describe('Order Routes', () => {
   })
 
   it('GET    /order/:id            – retrieve single order', async () => {
-    const customer = await prisma.customer.create({
-      data: {
-        id: randomUUID(),
-        name: 'RouteTest2',
-        email: `${randomUUID()}@mail.com`,
-        phone: '2222',
-        customerType: 'BUSINESS',
-      },
+    const customer = await makeCustomer({
+      name: 'RouteTest2',
+      phone: '2222',
+      customerType: 'BUSINESS',
     })
     const positions: PositionInput[] = [
       {
@@ -204,14 +163,15 @@ describe('Order Routes', () => {
         shirtSize: 'S',
       },
     ]
-    const created = await createOrder(customer.id, positions)
+    const order = await makeOrder(customer.id)
+    await makePosition(order.id)
     const res = await app.inject({
       method: 'GET',
-      url: `/order/${created.id}`,
+      url: `/order/${order.id}`,
     })
     expect(res.statusCode).toBe(200)
     const body = await res.json()
-    expect(body.id).toBe(created.id)
+    expect(body.id).toBe(order.id)
     expect(body.positions).toHaveLength(1)
   })
 
@@ -223,26 +183,12 @@ describe('Order Routes', () => {
   })
 
   it('GET    /order?customerId=...  – filter by customerId', async () => {
-    const customer = await prisma.customer.create({
-      data: {
-        id: randomUUID(),
-        name: 'RouteTest3',
-        email: `${randomUUID()}@mail.com`,
-        phone: '3333',
-        customerType: 'WEBSHOP',
-      },
+    const customer = await makeCustomer({
+      name: 'RouteTest3',
+      phone: '3333',
+      customerType: 'WEBSHOP',
     })
-    await createOrder(customer.id, [
-      {
-        amount: 1,
-        pos_number: 1,
-        name: 'F3',
-        productCategory: 'T_SHIRT',
-        design: 'DF3',
-        color: 'cmyk(0%,0%,0%,0%)',
-        shirtSize: 'L',
-      },
-    ])
+    const order = await makeOrder(customer.id)
     const res = await app.inject({
       method: 'GET',
       url: `/order?customerId=${customer.id}`,
@@ -253,26 +199,13 @@ describe('Order Routes', () => {
   })
 
   it('GET    /order/status/:status  – filter by position status', async () => {
-    const customer = await prisma.customer.create({
-      data: {
-        id: randomUUID(),
-        name: 'RouteTest4',
-        email: `${randomUUID()}@mail.com`,
-        phone: '4444',
-        customerType: 'BUSINESS',
-      },
+    const customer = await makeCustomer({
+      name: 'RouteTest4',
+      phone: '4444',
+      customerType: 'BUSINESS',
     })
-    const created = await createOrder(customer.id, [
-      {
-        amount: 1,
-        pos_number: 1,
-        name: 'S4',
-        productCategory: 'T_SHIRT',
-        design: 'DS4',
-        color: 'cmyk(0%,0%,0%,0%)',
-        shirtSize: 'S',
-      },
-    ])
+    const order = await makeOrder(customer.id)
+    await makePosition(order.id)
     const res = await app.inject({
       method: 'GET',
       url: `/order/status/IN_PROGRESS`,
@@ -280,6 +213,6 @@ describe('Order Routes', () => {
     expect(res.statusCode).toBe(200)
     const body = await res.json()
     expect(Array.isArray(body)).toBe(true)
-    expect(body.some((o: any) => o.id === created.id)).toBe(true)
+    expect(body.some((o: any) => o.id === order.id)).toBe(true)
   })
 })

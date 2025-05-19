@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { prisma } from '../../plugins/prisma'
 import { app } from '../../vitest.setup'
+import { makeProduct } from '../../utils/test.factory'
 
 // Mock für externen Inventory-Service auf Basis der input-Daten
 vi.mock('../../external/inventory.service', () => ({
@@ -33,14 +33,9 @@ describe('Product Routes – vollständige Abdeckung', () => {
   })
 
   it('GET    /product                      – list products', async () => {
-    await prisma.standardProduct.create({
-      data: {
-        name: 'List Test',
-        productCategory: 'T_SHIRT',
-        minAmount: 2,
-        color: 'cmyk(0%,0%,0%,0%)',
-        shirtSize: 'M',
-      },
+    await makeProduct({
+      name: 'List Test',
+      minAmount: 2,
     })
     const res = await app.inject({ method: 'GET', url: '/product' })
     expect(res.statusCode).toBe(200)
@@ -50,14 +45,9 @@ describe('Product Routes – vollständige Abdeckung', () => {
   })
 
   it('GET    /product/:id                  – get a single product by id', async () => {
-    const product = await prisma.standardProduct.create({
-      data: {
-        name: 'Single Get',
-        productCategory: 'T_SHIRT',
-        minAmount: 3,
-        color: 'cmyk(0%,0%,0%,0%)',
-        shirtSize: 'M',
-      },
+    const product = await makeProduct({
+      name: 'Single Get',
+      minAmount: 3,
     })
     const res = await app.inject({
       method: 'GET',
@@ -70,14 +60,9 @@ describe('Product Routes – vollständige Abdeckung', () => {
   })
 
   it('PUT    /product/:id                  – update a product', async () => {
-    const product = await prisma.standardProduct.create({
-      data: {
-        name: 'To Update',
-        productCategory: 'T_SHIRT',
-        minAmount: 4,
-        color: 'cmyk(0%,0%,0%,0%)',
-        shirtSize: 'M',
-      },
+    const product = await makeProduct({
+      name: 'To Update',
+      minAmount: 4,
     })
     const res = await app.inject({
       method: 'PUT',
@@ -94,14 +79,9 @@ describe('Product Routes – vollständige Abdeckung', () => {
   })
 
   it('DELETE /product/:id                  – soft delete a product', async () => {
-    const product = await prisma.standardProduct.create({
-      data: {
-        name: 'To Delete',
-        productCategory: 'T_SHIRT',
-        minAmount: 5,
-        color: 'cmyk(0%,0%,0%,0%)',
-        shirtSize: 'M',
-      },
+    const product = await makeProduct({
+      name: 'To Delete',
+      minAmount: 5,
     })
     const res = await app.inject({
       method: 'DELETE',
@@ -113,14 +93,11 @@ describe('Product Routes – vollständige Abdeckung', () => {
   })
 
   it('POST   /product/:id/production-order – create production order', async () => {
-    const product = await prisma.standardProduct.create({
-      data: {
-        name: 'ProdOrderTest',
-        productCategory: 'T_SHIRT',
-        minAmount: 2,
-        color: 'cmyk(10%,20%,30%,40%)',
-        shirtSize: 'L',
-      },
+    const product = await makeProduct({
+      name: 'ProdOrderTest',
+      minAmount: 2,
+      color: 'cmyk(10%,20%,30%,40%)',
+      shirtSize: 'L',
     })
 
     const res = await app.inject({
