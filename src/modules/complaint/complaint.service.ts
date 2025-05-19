@@ -65,22 +65,85 @@ export async function createComplaint(input: {
       createNewOrder: input.createNewOrder,
       newOrderId,
     },
+    include: {
+      position: {
+        include: {
+          order: {
+            include: {
+              customer: true,
+            },
+          },
+        },
+      },
+    },
   })
 
   return complaint
 }
 
 export const getComplaintsByPosition = (positionId: string) =>
-  prisma.complaint.findMany({ where: { positionId } })
+  prisma.complaint.findMany({
+    where: { positionId },
+    include: {
+      position: {
+        include: {
+          order: {
+            include: {
+              positions: true,
+              customer: true,
+            },
+          },
+        },
+      },
+    },
+  })
 
 export const getComplaintsByOrder = (orderId: string) =>
   prisma.complaint.findMany({
     where: { position: { orderId } },
+    include: {
+      position: {
+        include: {
+          order: {
+            include: {
+              positions: true,
+              customer: true,
+            },
+          },
+        },
+      },
+    },
   })
 
 export const getComplaintsByCustomer = (customerId: string) =>
   prisma.complaint.findMany({
     where: { position: { order: { customerId } } },
+    include: {
+      position: {
+        include: {
+          order: {
+            include: {
+              positions: true,
+              customer: true,
+            },
+          },
+        },
+      },
+    },
   })
 
-export const getAllComplaints = () => prisma.complaint.findMany()
+export const getAllComplaints = () =>
+  prisma.complaint.findMany({
+    include: {
+      position: {
+        include: {
+          order: {
+            include: {
+              positions: true,
+              customer: true,
+            },
+          },
+        },
+      },
+    },
+  })

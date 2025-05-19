@@ -100,11 +100,16 @@ export default async function positionRoutes(fastify: FastifyInstance) {
     handler: async (request, reply) => {
       const { orderNumber, positions } =
         requestFinishedGoodsSchema.shape.body.parse(request.body)
-      const results: Array<{ id: string; message: string; newStatus: string }> = []
+      const results: Array<{ id: string; message: string; newStatus: string }> =
+        []
 
       for (const pos of positions) {
         const res = await requestFinishedGoods(pos.id)
-        results.push({ id: pos.id, message: res.message, newStatus: res.newStatus })
+        results.push({
+          id: pos.id,
+          message: res.message,
+          newStatus: res.newStatus,
+        })
       }
 
       reply.send({ orderNumber, results })

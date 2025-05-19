@@ -38,18 +38,22 @@ async function main() {
 
   // === 2. Erzeuge Kunden, Orders, Positionen ===
   for (let i = 0; i < 10; i++) {
-    const customer = await prisma.customer.create({
-      data: {
-        email: faker.internet.email(),
-        name: faker.person.fullName(),
-        phone: faker.phone.number(),
-        addr_city: faker.location.city(),
-        addr_zip: faker.location.zipCode(),
-        addr_street: faker.location.street(),
-        addr_line1: faker.location.buildingNumber(),
-        customerType: faker.helpers.arrayElement(['WEBSHOP', 'BUSINESS']),
-      },
-    })
+    const hasCustomer = faker.number.int({ min: 0, max: 2 }) > 0
+
+    const customer = hasCustomer
+      ? await prisma.customer.create({
+          data: {
+            email: faker.internet.email(),
+            name: faker.person.fullName(),
+            phone: faker.phone.number(),
+            addr_city: faker.location.city(),
+            addr_zip: faker.location.zipCode(),
+            addr_street: faker.location.street(),
+            addr_line1: faker.location.buildingNumber(),
+            customerType: faker.helpers.arrayElement(['WEBSHOP', 'BUSINESS']),
+          },
+        })
+      : null
 
     const orderCount = faker.number.int({ min: 1, max: 5 })
     for (let j = 0; j < orderCount; j++) {
@@ -58,7 +62,7 @@ async function main() {
 
       const order = await prisma.order.create({
         data: {
-          customerId: customer.id,
+          customerId: customer?.id ?? null,
           orderNumber,
           deletedAt: null,
         },
@@ -66,27 +70,28 @@ async function main() {
 
       const posCount = faker.number.int({ min: 1, max: 6 })
       for (let k = 0; k < posCount; k++) {
-        const hasComplaint = faker.datatype.boolean()
         const maybeStandardProduct = faker.helpers.maybe(() =>
           faker.helpers.arrayElement(allStandardProducts),
         )
 
-        await prisma.position.create({
-          data: {
-            orderId: order.id,
-            pos_number: k + 1,
-            name: faker.commerce.productName(),
-            description: faker.commerce.productDescription(),
-            amount: faker.number.int({ min: 1, max: 10 }),
-            design: faker.lorem.word(),
-            color: `cmyk(${Array.from({ length: 4 })
-              .map(() => `${faker.number.int({ min: 0, max: 100 })}%`)
-              .join(',')})`,
-            shirtSize: faker.helpers.arrayElement(sizes),
-            productCategory: ProductCategory.T_SHIRT,
-            Status: faker.helpers.arrayElement(statuses),
-            standardProductId: maybeStandardProduct?.id ?? null,
-            ...(hasComplaint && {
+        const hasComplaint = faker.datatype.boolean()
+
+        if (hasComplaint) {
+          await prisma.position.create({
+            data: {
+              orderId: order.id,
+              pos_number: k + 1,
+              name: faker.commerce.productName(),
+              description: faker.commerce.productDescription(),
+              amount: faker.number.int({ min: 1, max: 10 }),
+              design: faker.lorem.word(),
+              color: `cmyk(${Array.from({ length: 4 })
+                .map(() => `${faker.number.int({ min: 0, max: 100 })}%`)
+                .join(',')})`,
+              shirtSize: faker.helpers.arrayElement(sizes),
+              productCategory: ProductCategory.T_SHIRT,
+              Status: POSITION_STATUS.CANCELLED,
+              standardProductId: maybeStandardProduct?.id ?? null,
               complaints: {
                 create: {
                   ComplaintReason: faker.helpers.arrayElement(reasons),
@@ -94,9 +99,29 @@ async function main() {
                   createNewOrder: faker.datatype.boolean(),
                 },
               },
-            }),
-          },
-        })
+            },
+          })
+        } else {
+          await prisma.position.create({
+            data: {
+              orderId: order.id,
+              pos_number: k + 1,
+              name: faker.commerce.productName(),
+              description: faker.commerce.productDescription(),
+              amount: faker.number.int({ min: 1, max: 10 }),
+              design: faker.lorem.word(),
+              color: `cmyk(${Array.from({ length: 4 })
+                .map(() => `${faker.number.int({ min: 0, max: 100 })}%`)
+                .join(',')})`,
+              shirtSize: faker.helpers.arrayElement(sizes),
+              productCategory: ProductCategory.T_SHIRT,
+              Status: faker.helpers.arrayElement(
+                statuses.filter((s) => s !== POSITION_STATUS.CANCELLED),
+              ),
+              standardProductId: maybeStandardProduct?.id ?? null,
+            },
+          })
+        }
       }
     }
   }

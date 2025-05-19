@@ -49,7 +49,7 @@ CREATE TABLE "Order" (
     "deletedAt" TIMESTAMP(3),
     "seq" SERIAL NOT NULL,
     "orderNumber" VARCHAR(8) NOT NULL,
-    "customerId" TEXT NOT NULL,
+    "customerId" TEXT,
 
     CONSTRAINT "Order_pkey" PRIMARY KEY ("id")
 );
