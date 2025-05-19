@@ -12,5 +12,7 @@ export default defineConfig({
     fileParallelism: false,
     globals: true,
     environment: 'node',
+    setupFiles: ['./src/vitest.setup.ts'],
+    isolate: false,
   },
 })

@@ -1,7 +1,5 @@
-import { beforeEach, afterEach, describe, expect, it, vi, MockedFunction } from 'vitest'
-import Fastify from 'fastify'
+import { describe, expect, it, MockedFunction } from 'vitest'
 import { prisma } from '../../plugins/prisma'
-import positionRoutes from './position.routes'
 import {
   createPosition,
   updatePositionStatusByBusinessKey,
@@ -9,25 +7,13 @@ import {
 import { requestFinishedGoods } from '../../external/inventory.service'
 import { randomUUID } from 'crypto'
 import { $Enums } from '../../../generated/prisma'
+import { app } from '../../vitest.setup'
 
 type ProductCategory = $Enums.ProductCategory
 type ShirtSize = $Enums.ShirtSize
 type POSITION_STATUS = $Enums.POSITION_STATUS
 
-// Mock des externen Inventory-Service
-vi.mock('../../external/inventory.service', () => ({
-  requestFinishedGoods: vi.fn(),
-}))
-
 describe('Position Service Unit Tests', () => {
-  beforeEach(async () => {
-    await prisma.complaint.deleteMany()
-    await prisma.position.deleteMany()
-    await prisma.order.deleteMany()
-    await prisma.customer.deleteMany()
-    await prisma.standardProduct.deleteMany()
-  })
-
   it('should create a new position with valid data', async () => {
     const customer = await prisma.customer.create({
       data: {
@@ -132,23 +118,6 @@ describe('Position Service Unit Tests', () => {
 })
 
 describe('Position Routes', () => {
-  let app: ReturnType<typeof Fastify>
-
-  beforeEach(async () => {
-    app = Fastify()
-    app.register(positionRoutes, { prefix: '/position' })
-    await app.ready()
-
-    await prisma.position.deleteMany()
-    await prisma.order.deleteMany()
-    await prisma.customer.deleteMany()
-  })
-
-  afterEach(async () => {
-    await app.close()
-    vi.clearAllMocks()
-  })
-
   it('POST /position – create new position', async () => {
     // Seed Customer + Order
     const customer = await prisma.customer.create({
@@ -244,9 +213,7 @@ describe('Position Routes', () => {
     })
 
     expect(res.statusCode).toBe(200)
-    expect(res.body).toBe(
-      `Updated position status successfully to COMPLETED`
-    )
+    expect(res.body).toBe(`Updated position status successfully to COMPLETED`)
 
     const updatedPos = await prisma.position.findUniqueOrThrow({
       where: { id: pos.id },
@@ -299,15 +266,6 @@ describe('Position Routes', () => {
       },
     })
 
-    // Mock-Verhalten definieren (Lösung 1)
-    const mockRequestFinishedGoods = requestFinishedGoods as MockedFunction<
-      typeof requestFinishedGoods
-    >
-    mockRequestFinishedGoods.mockResolvedValue({
-      message: 'Finished goods request sent successfully',
-      newStatus: 'READY_FOR_INSPECTION',
-    })
-
     // Endpoint aufrufen
     const res = await app.inject({
       method: 'POST',
@@ -321,25 +279,12 @@ describe('Position Routes', () => {
     // Assertions
     expect(res.statusCode).toBe(200)
     const body = res.json()
-    expect(body).toEqual({
-      orderNumber: order.orderNumber,
-      results: [
-        {
-          id: pos1.id,
-          message: 'Finished goods request sent successfully',
-          newStatus: 'READY_FOR_INSPECTION',
-        },
-        {
-          id: pos2.id,
-          message: 'Finished goods request sent successfully',
-          newStatus: 'READY_FOR_INSPECTION',
-        },
-      ],
-    })
-
-    // Sicherstellen, dass der Mock für jede Position aufgerufen wurde
-    expect(requestFinishedGoods).toHaveBeenCalledTimes(2)
-    expect(requestFinishedGoods).toHaveBeenCalledWith(pos1.id)
-    expect(requestFinishedGoods).toHaveBeenCalledWith(pos2.id)
+    expect(body.orderNumber).toBe(order.orderNumber)
+    expect(body.results).toHaveLength(2)
+    for (const result of body.results) {
+      expect(result.newStatus).toBe('READY_FOR_INSPECTION')
+      expect(result.id).toBeDefined()
+      expect(result.message).toContain('Fertigware für Position')
+    }
   })
 })

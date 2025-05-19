@@ -1,50 +1,16 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import Fastify from 'fastify'
+import { describe, expect, it } from 'vitest'
+import { app } from '../../vitest.setup'
 import { prisma } from '../../plugins/prisma'
 import {
   createOrder,
-  getOrderById,
   getAllOrders,
+  getOrderById,
   getOrdersByCustomer,
   getOrdersWithPositionStatus,
   PositionInput,
 } from './order.service'
 import { randomUUID } from 'crypto'
 import { setTimeout } from 'timers/promises'
-import * as inventoryService from '../../external/inventory.service'
-import { registerPlugins } from '../../plugins/register-plugins'
-import { registerModules } from '../register-modules'
-
-let app: ReturnType<typeof Fastify>
-
-beforeAll(async () => {
-  app = Fastify()
-  await registerPlugins(app)
-  await registerModules(app)
-})
-
-afterAll(async () => {
-  await app.close()
-})
-
-beforeEach(async () => {
-  // DB zurücksetzen (FK-Abhängigkeiten beachten)
-  await prisma.complaint.deleteMany()
-  await prisma.position.deleteMany()
-  await prisma.order.deleteMany()
-  await prisma.customer.deleteMany()
-
-  // Mocks zurücksetzen
-  vi.restoreAllMocks()
-  vi.spyOn(inventoryService, 'createProductionOrder').mockImplementation(
-    async (input: any) => ({
-      ...input,
-      status: 'ok',
-      message: `Produktionsauftrag über ${input.amount} Stück ausgelöst`,
-    }),
-  )
-  vi.spyOn(inventoryService, 'getInventoryCount').mockResolvedValue(0)
-})
 
 describe('Order Service Unit Tests (mit Positionen)', () => {
   it('should create a new order with positions and incremented order number', async () => {
@@ -145,7 +111,7 @@ describe('Order Service Unit Tests (mit Positionen)', () => {
     await createOrder(customer.id, positions)
     const list = await getOrdersByCustomer(customer.id)
     expect(list).toHaveLength(2)
-    list.forEach(o => {
+    list.forEach((o) => {
       expect(o.customerId).toBe(customer.id)
       expect(o.positions).toHaveLength(1)
     })
@@ -179,7 +145,7 @@ describe('Order Service Unit Tests (mit Positionen)', () => {
     ]
     const o = await createOrder(customer.id, positions)
     const filtered = await getOrdersWithPositionStatus('IN_PROGRESS')
-    expect(filtered.some(f => f.id === o.id)).toBe(true)
+    expect(filtered.some((f) => f.id === o.id)).toBe(true)
   })
 })
 
@@ -241,7 +207,7 @@ describe('Order Routes', () => {
     const created = await createOrder(customer.id, positions)
     const res = await app.inject({
       method: 'GET',
-      url: `/order/${created.id}`
+      url: `/order/${created.id}`,
     })
     expect(res.statusCode).toBe(200)
     const body = await res.json()
@@ -266,8 +232,21 @@ describe('Order Routes', () => {
         customerType: 'WEBSHOP',
       },
     })
-    await createOrder(customer.id, [{ amount: 1, pos_number: 1, name: 'F3', productCategory: 'T_SHIRT', design: 'DF3', color: 'cmyk(0%,0%,0%,0%)', shirtSize: 'L' }])
-    const res = await app.inject({ method: 'GET', url: `/order?customerId=${customer.id}` })
+    await createOrder(customer.id, [
+      {
+        amount: 1,
+        pos_number: 1,
+        name: 'F3',
+        productCategory: 'T_SHIRT',
+        design: 'DF3',
+        color: 'cmyk(0%,0%,0%,0%)',
+        shirtSize: 'L',
+      },
+    ])
+    const res = await app.inject({
+      method: 'GET',
+      url: `/order?customerId=${customer.id}`,
+    })
     expect(res.statusCode).toBe(200)
     const body = await res.json()
     expect(body.every((o: any) => o.customerId === customer.id)).toBe(true)
@@ -283,8 +262,21 @@ describe('Order Routes', () => {
         customerType: 'BUSINESS',
       },
     })
-    const created = await createOrder(customer.id, [{ amount: 1, pos_number: 1, name: 'S4', productCategory: 'T_SHIRT', design: 'DS4', color: 'cmyk(0%,0%,0%,0%)', shirtSize: 'S' }])
-    const res = await app.inject({ method: 'GET', url: `/order/status/IN_PROGRESS` })
+    const created = await createOrder(customer.id, [
+      {
+        amount: 1,
+        pos_number: 1,
+        name: 'S4',
+        productCategory: 'T_SHIRT',
+        design: 'DS4',
+        color: 'cmyk(0%,0%,0%,0%)',
+        shirtSize: 'S',
+      },
+    ])
+    const res = await app.inject({
+      method: 'GET',
+      url: `/order/status/IN_PROGRESS`,
+    })
     expect(res.statusCode).toBe(200)
     const body = await res.json()
     expect(Array.isArray(body)).toBe(true)

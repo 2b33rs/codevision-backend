@@ -1,19 +1,6 @@
-import {
-  describe,
-  it,
-  expect,
-  beforeAll,
-  afterAll,
-  beforeEach,
-  afterEach,
-  vi,
-  MockedFunction,
-} from 'vitest'
-import Fastify from 'fastify'
-import { registerPlugins } from '../../plugins/register-plugins'
-import { registerModules } from '../register-modules'
+import { describe, expect, it, vi } from 'vitest'
 import { prisma } from '../../plugins/prisma'
-import * as inventoryService from '../../external/inventory.service'
+import { app } from '../../vitest.setup'
 
 // Mock für externen Inventory-Service auf Basis der input-Daten
 vi.mock('../../external/inventory.service', () => ({
@@ -25,28 +12,6 @@ vi.mock('../../external/inventory.service', () => ({
     amount: input.amount,
   })),
 }))
-
-let app: ReturnType<typeof Fastify>
-
-beforeAll(async () => {
-  app = Fastify()
-  await registerPlugins(app)
-  await registerModules(app) // registriert alle /product-Endpunkte
-})
-
-afterAll(async () => {
-  await app.close()
-})
-
-beforeEach(async () => {
-  // BEGIN TRANSACTION
-  await prisma.$executeRawUnsafe('BEGIN')
-})
-
-afterEach(async () => {
-  // ROLLBACK
-  await prisma.$executeRawUnsafe('ROLLBACK')
-})
 
 describe('Product Routes – vollständige Abdeckung', () => {
   it('POST   /product                      – create a product', async () => {

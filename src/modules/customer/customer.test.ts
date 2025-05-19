@@ -1,43 +1,9 @@
-import {
-  describe,
-  it,
-  expect,
-  beforeAll,
-  afterAll,
-  beforeEach,
-  afterEach,
-  vi,
-} from 'vitest'
-import Fastify from 'fastify'
+import { describe, it, expect, vi } from 'vitest'
+import { app } from '../../vitest.setup'
 import { registerPlugins } from '../../plugins/register-plugins'
 import { registerModules } from '../register-modules'
 import { prisma } from '../../plugins/prisma'
 import { randomUUID } from 'crypto'
-
-// Alle Endpoints laut customer.routes.ts: POST /customer, GET /customer, GET /customer/:id, PUT /customer/:id,
-// GET /customer/:id/meta, DELETE /customer/:id :contentReference[oaicite:0]{index=0}:contentReference[oaicite:1]{index=1}
-
-let app: ReturnType<typeof Fastify>
-
-beforeAll(async () => {
-  app = Fastify()
-  await registerPlugins(app)
-  await registerModules(app)
-})
-
-afterAll(async () => {
-  await app.close()
-})
-
-beforeEach(async () => {
-  // Transaktion starten, damit jeder Test isoliert ist
-  await prisma.$executeRawUnsafe('BEGIN')
-})
-
-afterEach(async () => {
-  // Zurückrollen
-  await prisma.$executeRawUnsafe('ROLLBACK')
-})
 
 describe('Customer Routes – vollständige Abdeckung', () => {
   it('POST   /customer                   – create a customer', async () => {
