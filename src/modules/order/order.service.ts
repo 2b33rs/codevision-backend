@@ -1,7 +1,7 @@
 import { prisma } from '../../plugins/prisma'
 import { randomUUID } from 'crypto'
 import { createPosition } from '../position/position.service'
-import { $Enums } from '../../../generated/prisma'
+import { $Enums, Order, Position } from '../../../generated/prisma'
 import {
   createProductionOrder,
   getInventoryCount,
