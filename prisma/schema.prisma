@@ -1,6 +1,7 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../generated/prisma"
+  provider        = "prisma-client-js"
+  output          = "../generated/prisma"
+  previewFeatures = ["fullTextSearch"]
 }
 
 datasource db {
@@ -67,9 +68,10 @@ model Position {
 
 model StandardProduct {
   id                 String          @id @default(uuid())
+  deletedAt          DateTime?
+  //
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
-  deletedAt          DateTime?
   name               String
   color              String?
   shirtSize          ShirtSize?

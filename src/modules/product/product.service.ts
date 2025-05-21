@@ -1,6 +1,6 @@
 import { FastifyReply, FastifyRequest } from 'fastify'
 import { prisma } from '../../plugins/prisma'
-import { Prisma } from '../../../generated/prisma'
+import { $Enums, Prisma, StandardProduct } from '../../../generated/prisma'
 import { getInventoryCount } from '../../external/inventory.service'
 
 type IdParam = { id: string }
@@ -20,8 +20,6 @@ export async function create(
     res.status(500).send({ error: 'Internal Server Error' })
   }
 }
-
-
 
 export async function read(
   req: FastifyRequest<{ Params: IdParam }>,
@@ -62,24 +60,52 @@ export async function createProductionOrder(
   }
 }
 
-export async function list(req: FastifyRequest, res: FastifyReply) {
-  const products = await prisma.standardProduct.findMany({
-    where: { deletedAt: null },
-  })
+export async function list(
+  req: FastifyRequest<{ Querystring: { query?: string } }>,
+  res: FastifyReply,
+) {
+  const { query } = req.query
+  let products: StandardProduct[]
+
+  if (!query) {
+    products = await prisma.standardProduct.findMany({
+      where: { deletedAt: null },
+    })
+  } else {
+    products = (await prisma.$queryRawUnsafe(
+      `
+        SELECT * FROM "StandardProduct"
+        WHERE "deletedAt" IS NULL
+        AND to_tsvector('simple',
+          coalesce("name", '') || ' ' ||
+          coalesce("color", '') || ' ' ||
+          coalesce("shirtSize"::text, '')
+        ) @@ plainto_tsquery('simple', $1)
+      `,
+      query,
+    )) as StandardProduct[]
+  }
 
   const enriched = await Promise.all(
-    products.map(async (product) => {
+    products.map(async (product: any) => {
       const currentStock = await getInventoryCount({
         color: product.color,
         shirtSize: product.shirtSize,
       })
 
+      const restbestand =
+        currentStock + product.amountInProduction - product.minAmount
+
       return {
         ...product,
         currentStock,
+        restbestand,
       }
     }),
   )
+
+  // sort by restbestand
+  enriched.sort((a, b) => a.restbestand - b.restbestand)
 
   res.send(enriched)
 }

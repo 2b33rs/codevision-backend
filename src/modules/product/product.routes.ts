@@ -39,6 +39,13 @@ export default async function productRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['Product'],
       description: 'List all standard products',
+      querystring: {
+        type: 'object',
+        properties: {
+          query: { type: 'string' },
+        },
+        required: [],
+      },
       response: {
         200: schemas.list,
       },
