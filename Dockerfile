@@ -22,3 +22,4 @@ RUN npm prune --production
 
 # Start (aus dist/)
 CMD ["node", "dist/index.js"]
+

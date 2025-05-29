@@ -10,6 +10,7 @@ export function createServer() {
     origin: [
       'http://localhost:5173',
       'https://codevision.up.railway.app',
+      'https://white-dune-0347c7a03.6.azurestaticapps.net',
       'http://localhost:80',
     ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
