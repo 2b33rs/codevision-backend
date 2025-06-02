@@ -66,6 +66,9 @@ describe('Order Service Unit Tests (mit Positionen)', () => {
     const found = await getOrderById(created.id)
     expect(found).not.toBeNull()
     expect(found!.positions).toHaveLength(1)
+    found!.positions.forEach((p) => {
+      expect(Array.isArray(p.productionOrders)).toBe(true)
+    })
   })
 
   it('should list all orders for a customer', async () => {
@@ -89,6 +92,9 @@ describe('Order Service Unit Tests (mit Positionen)', () => {
     list.forEach((o) => {
       expect(o.customerId).toBe(customer.id)
       expect(o.positions).toHaveLength(1)
+      o.positions.forEach((p) => {
+        expect(Array.isArray(p.productionOrders)).toBe(true)
+      })
     })
   })
 

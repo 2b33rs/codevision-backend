@@ -75,43 +75,75 @@ export async function createOrder(
       }),
     )
 
-    await Promise.all(
+        await Promise.all(
       createdPositions.map(async (pos) => {
-        const currentStock = await getInventoryCount({
+        // 1. Prüfe Bestand für Farbe + Design
+        const stockWithDesign = await getInventoryCount({
           color: pos.color,
           shirtSize: pos.shirtSize,
           design: pos.design,
+          category: pos.productCategory,
+          typ: 'Runden-Ausschnitt',
         })
 
-        const needed = pos.amount
-        const toProduce = Math.max(0, needed - currentStock)
-        console.log(
-          `🧮 Position ${pos.id} braucht ${needed}, Lagerbestand: ${currentStock}, zu produzieren: ${toProduce}`,
-        )
+        let remaining = pos.amount - stockWithDesign.anzahl
 
-        if (toProduce > 0) {
-          console.log(`🏭 Produktionsauftrag für Position-ID ${pos.id}`)
+        if (remaining <= 0) {
+          // Alles ist schon fertig auf Lager, keine Produktion nötig -> Hier MaWi Reservierung einbringen
+          return
+        }
+
+        // 2. Prüfe Bestand für Farbe (ohne Design)
+        const stockWithoutDesign = await getInventoryCount({
+          color: pos.color,
+          shirtSize: pos.shirtSize,
+          category: pos.productCategory,
+          typ: 'Runden-Ausschnitt',
+        })
+
+        // Verfügbare "nur gefärbte" T-Shirts, die noch bedruckt werden können
+        const availableForPrint = Math.max(0, stockWithoutDesign.anzahl - stockWithDesign.anzahl)
+
+        // 3. Produktionsaufträge auslösen
+
+        // a) Bedrucken: Falls "nur gefärbte" Shirts vorhanden sind, aber noch nicht bedruckt/ Was ist hier richtig? Spaltenbenennung wie Prod oder wie bei uns im Modell?
+        if (availableForPrint > 0) {
+          const toPrint = Math.min(remaining, availableForPrint)
           await createProductionOrder({
-            productId: pos.id,
-            amount: toProduce,
-            color: pos.color,
-            shirtSize: pos.shirtSize,
-            design: pos.design,
+            positionsId: pos.id,
+            amount: toPrint, // oder remaining
+            designUrl: pos.design, // oder das tatsächliche Motiv
+            orderType: 'BEDRUCKEN' /* oder 'FAERBEN_UND_BEDRUCKEN' */,
+            dyeingNecessary: false, // oder true, je nach Fall
+            productTemplate: {
+              kategorie: pos.productCategory,
+              artikelnummer: stockWithoutDesign.material_ID, // falls vorhanden
+              groesse: pos.shirtSize,
+              farbcode: pos.color, // ggf. als Objekt oder String, je nach API
+              typ: 'Runden-Ausschnitt',
+            },
+            Status: 'ORDER_RECEIVED', 
           })
+          remaining -= toPrint
+        }
 
-          if (pos.standardProductId) {
-            console.log(
-              `🔄 Update amountInProduction für StandardProduct ${pos.standardProductId}`,
-            )
-            await prisma.standardProduct.update({
-              where: { id: pos.standardProductId },
-              data: {
-                amountInProduction: {
-                  increment: toProduce,
-                },
-              },
-            })
-          }
+        // b) Färben + Bedrucken: Falls immer noch Bedarf besteht
+        if (remaining > 0) {
+          await createProductionOrder({
+            positionId: pos.id,
+            amount: remaining,
+            designUrl: pos.design, // oder ein anderes Feld, falls benötigt
+            orderType: 'FAERBEN_UND_BEDRUCKEN',
+            dyeingNecessary: true,
+            productTemplate: {
+              kategorie: pos.productCategory,
+              artikelnummer: stockWithoutDesign.material_ID, // falls vorhanden
+              groesse: pos.shirtSize,
+              farbcode: pos.color, // ggf. als Objekt oder String, je nach API
+              typ: 'Runden-Ausschnitt',
+            }, // ggf. befüllen
+            Status: 'ORDER_RECEIVED',
+          })
         }
       }),
     )
@@ -131,14 +163,40 @@ export async function createOrder(
 }
 
 export const getOrderById = (id: string) =>
-  prisma.order.findUnique({ where: { id }, include: { positions: true } })
+  prisma.order.findUnique({
+    where: { id },
+    include: {
+      positions: {
+        include: {
+          productionOrders: true,
+        },
+      },
+    },
+  })
 
 export const getOrdersByCustomer = (customerId: string) =>
-  prisma.order.findMany({ where: { customerId }, include: { positions: true } })
+  prisma.order.findMany({
+    where: { customerId },
+    include: {
+      positions: {
+        include: {
+          productionOrders: true,
+        },
+      },
+    },
+  })
 
 export const getAllOrders = async () => {
   try {
-    let newVar = await prisma.order.findMany({ include: { positions: true } })
+    let newVar = await prisma.order.findMany({
+      include: {
+        positions: {
+          include: {
+            productionOrders: true,
+          },
+        },
+      },
+    })
     return newVar
   } catch (err) {
     console.error('❌ Fehler beim Laden der Orders:', err)
@@ -157,7 +215,11 @@ export async function getOrdersWithPositionStatus(status: POSITION_STATUS) {
         },
       },
       include: {
-        positions: true,
+        positions: {
+          include: {
+            productionOrders: true,
+          },
+        },
       },
     })
   } catch (err) {

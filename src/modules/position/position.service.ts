@@ -3,6 +3,7 @@ import { prisma } from '../../plugins/prisma'
 import POSITION_STATUS = $Enums.POSITION_STATUS
 import ProductCategory = $Enums.ProductCategory
 import ShirtSize = $Enums.ShirtSize
+import PRODUCTION_ORDER_STATUS = $Enums.PRODUCTION_ORDER_STATUS
 
 /**
  * Aktualisiert den Status einer Position über den zusammengesetzten Geschäftsschlüssel.
@@ -71,5 +72,28 @@ export async function createPosition(
       Status: POSITION_STATUS.IN_PROGRESS,
       standardProductId,
     },
+  })
+}
+
+/**
+ * Aktualisiert den Status eines Produktionsauftrags (ProductionOrder) anhand seiner ID.
+ */
+export async function updateProductionOrderStatusByID(
+  productionOrderId: string,
+  status: PRODUCTION_ORDER_STATUS,
+) {
+  // Prüfe, ob ProductionOrder existiert
+  const productionOrder = await prisma.productionOrder.findUnique({
+    where: { id: productionOrderId },
+  })
+
+  if (!productionOrder) {
+    throw new Error('ProductionOrder not found')
+  }
+
+  // Status updaten
+  return prisma.productionOrder.update({
+    where: { id: productionOrderId },
+    data: { Status: status },
   })
 }

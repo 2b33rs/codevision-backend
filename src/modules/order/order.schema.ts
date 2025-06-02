@@ -6,6 +6,20 @@ type ProductCategory = $Enums.ProductCategory
 type ShirtSize = $Enums.ShirtSize
 /* ───────── Zod-Schemas (für Typing & Runtime-Validation) ───────── */
 
+export const productionOrderZ = z.object({
+  id: z.string().uuid(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  deletedAt: z.string().datetime().nullable().optional(),
+  positionId: z.string().uuid(),
+  amount: z.number().int(),
+  designUrl: z.string(),
+  orderType: z.string(),
+  dyeingNecessary: z.boolean(),
+  productTemplate: z.any(), // Adjust type if you want stricter validation
+  Status: z.nativeEnum($Enums.PRODUCTION_ORDER_STATUS),
+})
+
 export const positionZ = z.object({
   amount: z.number().int().positive(),
   pos_number: z.number().int().positive(),
@@ -32,6 +46,8 @@ export const positionZ = z.object({
   createdAt: z.string().datetime().optional(),
   updatedAt: z.string().datetime().optional(),
   orderId: z.string().uuid().optional(),
+
+  productionOrders: z.array(productionOrderZ).optional(),
 })
 
 export const orderBaseZ = z.object({
