@@ -13,6 +13,6 @@ export default fp(async (fastify) => {
   })
 
   await fastify.register(swaggerUI, {
-    routePrefix: '/',
+    routePrefix: '/docs',
   })
 })
