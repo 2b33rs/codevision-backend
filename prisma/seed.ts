@@ -82,7 +82,7 @@ async function main() {
               orderId: order.id,
               pos_number: k + 1,
               name: faker.commerce.productName(),
-              description: faker.commerce.productDescription(),
+              description: '',
               amount: faker.number.int({ min: 1, max: 10 }),
               design: `https://picsum.photos/id/${faker.number.int({ min: 1, max: 100 })}/200/300`,
 
@@ -109,7 +109,7 @@ async function main() {
               orderId: order.id,
               pos_number: k + 1,
               name: faker.commerce.productName(),
-              description: faker.commerce.productDescription(),
+              description: '',
               amount: faker.number.int({ min: 1, max: 10 }),
               design: `https://picsum.photos/id/${faker.number.int({ min: 1, max: 100 })}/200/300`,
               color: `cmyk(${Array.from({ length: 4 })
