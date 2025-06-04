@@ -20,7 +20,7 @@ export async function create(
     res.status(500).send({ error: 'Internal Server Error' })
   }
 }
-/*
+
 export async function read(
   req: FastifyRequest<{ Params: IdParam }>,
   res: FastifyReply,
@@ -41,7 +41,25 @@ export async function read(
     currentStock,
   })
 }
-*/
+
+export async function createProductionOrder(
+  req: FastifyRequest<{ Params: { id: string }; Body: { amount: number } }>,
+  reply: FastifyReply,
+) {
+  const { id } = req.params
+  const { amount } = req.body
+
+  console.log(`Produktionsauftrag für Produkt ${id}, Menge: ${amount}`)
+
+  // Beispiel: Produkt mit inProduction-Feld hochzählen
+  return {
+    status: 'ok',
+    message: `Produktionsauftrag für ${amount} Stück wurde erstellt`,
+    productId: id,
+    amount,
+  }
+}
+
 export async function list(
   req: FastifyRequest<{ Querystring: { query?: string } }>,
   res: FastifyReply,

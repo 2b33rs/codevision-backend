@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { app } from '../../vitest.setup'
 import { makeCustomer, makeOrder, makePosition } from '../../utils/test.factory'
+
 import {
   createOrder,
   getAllOrders,
@@ -10,6 +11,16 @@ import {
   PositionInput,
 } from './order.service'
 import { setTimeout } from 'timers/promises'
+
+vi.mock('../../external/inventory.service', () => ({
+  getInventoryCount: vi.fn().mockResolvedValue(0),
+  createProductionOrder: vi.fn().mockImplementation(async (input: any) => ({
+    status: 'ok',
+    message: `Produktionsauftrag für ${input.amount} Stück wurde erstellt`,
+    productId: input.productId,
+    amount: input.amount,
+  })),
+}))
 
 describe('Order Service Unit Tests (mit Positionen)', () => {
   it('should create a new order with positions and incremented order number', async () => {

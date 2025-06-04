@@ -1,8 +1,9 @@
 import { FastifyInstance } from 'fastify'
 import {
   create,
+  createProductionOrder,
   list,
- // read,
+  read,
   remove,
   update,
 } from './product.service'
@@ -20,7 +21,7 @@ export default async function productRoutes(fastify: FastifyInstance) {
     },
     handler: create,
   })
-/*
+
   fastify.get('/:id', {
     schema: {
       tags: ['Product'],
@@ -33,7 +34,7 @@ export default async function productRoutes(fastify: FastifyInstance) {
     },
     handler: read,
   })
-*/
+
   fastify.get('/', {
     schema: {
       tags: ['Product'],
@@ -75,5 +76,18 @@ export default async function productRoutes(fastify: FastifyInstance) {
       },
     },
     handler: remove,
+  })
+
+  fastify.post('/:id/production-order', {
+    schema: {
+      tags: ['Product'],
+      description: 'Erstellt einen Produktionsauftrag für ein Produkt',
+      params: schemas.params,
+      body: schemas.productionOrder,
+      response: {
+        200: schemas.productionOrderResponse,
+      },
+    },
+    handler: createProductionOrder,
   })
 }
