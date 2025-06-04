@@ -54,16 +54,22 @@ export async function createOrder(
       },
     })
 
+    // Für jede Position ermitteln wir den nächsten pos_number dynamisch
     const createdPositions = await Promise.all(
-      positions.map((p) => {
-        console.log(
-          `📌 Position ${p.pos_number} mit Standardprodukt:`,
-          p.standardProductId,
-        )
+      positions.map(async (p, index) => {
+        // Anzahl schon vorhandener Positionen für diese Order ermitteln
+        const existingPosCount = await prisma.position.count({
+          where: { orderId: order.id },
+        })
+        const nextPosNumber = existingPosCount + 1
+
+        console.log(`📌 Neue Position #${nextPosNumber} für Order: ${order.orderNumber}`)
+
+        // createPosition aufrufen und den berechneten nextPosNumber übergeben
         return createPosition(
           order.id,
           p.amount,
-          p.pos_number,
+          nextPosNumber,
           p.name,
           p.productCategory,
           p.design,
@@ -75,7 +81,7 @@ export async function createOrder(
       }),
     )
 
-        await Promise.all(
+    await Promise.all(
       createdPositions.map(async (pos) => {
         // 1. Prüfe Bestand für Farbe + Design
         const stockWithDesign = await getInventoryCount({
@@ -83,7 +89,7 @@ export async function createOrder(
           shirtSize: pos.shirtSize,
           design: pos.design,
           category: pos.productCategory,
-          typ: 'Runden-Ausschnitt',
+          typ: 'V-Ausschnitt',
         })
 
         let remaining = pos.amount - stockWithDesign.anzahl
@@ -98,11 +104,11 @@ export async function createOrder(
           color: pos.color,
           shirtSize: pos.shirtSize,
           category: pos.productCategory,
-          typ: 'Runden-Ausschnitt',
+          typ: 'V-Ausschnitt',
         })
 
         // Verfügbare "nur gefärbte" T-Shirts, die noch bedruckt werden können
-        const availableForPrint = Math.max(0, stockWithoutDesign.anzahl - stockWithDesign.anzahl)
+        const availableForPrint = Math.max(0, stockWithoutDesign.anzahl)
 
         // 3. Produktionsaufträge auslösen
 
@@ -110,38 +116,46 @@ export async function createOrder(
         if (availableForPrint > 0) {
           const toPrint = Math.min(remaining, availableForPrint)
           await createProductionOrder({
-            positionsId: pos.id,
-            amount: toPrint, // oder remaining
-            designUrl: pos.design, // oder das tatsächliche Motiv
-            orderType: 'BEDRUCKEN' /* oder 'FAERBEN_UND_BEDRUCKEN' */,
-            dyeingNecessary: false, // oder true, je nach Fall
+            positionId: pos.id,
+            amount:     toPrint,
+            designUrl:  pos.design,
+            orderType:  'BEDRUCKEN',
+            dyeingNecessary: false,
             productTemplate: {
-              kategorie: pos.productCategory,
-              artikelnummer: stockWithoutDesign.material_ID, // falls vorhanden
-              groesse: pos.shirtSize,
-              farbcode: pos.color, // ggf. als Objekt oder String, je nach API
-              typ: 'Runden-Ausschnitt',
+              kategorie:     pos.productCategory,
+              artikelnummer: stockWithoutDesign.material_ID ?? '',
+              groesse:       pos.shirtSize,
+              farbcode:      parseCmykString(pos.color) ?? {}, // <-- hier Objekt statt String
+              typ:           'V-Ausschnitt',
             },
-            Status: 'ORDER_RECEIVED', 
+            Status: 'ORDER_RECEIVED',
           })
           remaining -= toPrint
         }
 
         // b) Färben + Bedrucken: Falls immer noch Bedarf besteht
         if (remaining > 0) {
+          // Weißes, unbedrucktes Shirt abfragen
+          const stockWhite = await getInventoryCount({
+            color: 'cmyk(0%,0%,0%,0%)', // Weiß
+            shirtSize: pos.shirtSize,
+            category: pos.productCategory,
+            typ: 'V-Ausschnitt',
+          })
+
           await createProductionOrder({
             positionId: pos.id,
-            amount: remaining,
-            designUrl: pos.design, // oder ein anderes Feld, falls benötigt
-            orderType: 'FAERBEN_UND_BEDRUCKEN',
+            amount:     remaining,
+            designUrl:  pos.design,
+            orderType:  'FAERBEN_UND_BEDRUCKEN',
             dyeingNecessary: true,
             productTemplate: {
-              kategorie: pos.productCategory,
-              artikelnummer: stockWithoutDesign.material_ID, // falls vorhanden
-              groesse: pos.shirtSize,
-              farbcode: pos.color, // ggf. als Objekt oder String, je nach API
-              typ: 'Runden-Ausschnitt',
-            }, // ggf. befüllen
+              kategorie:     pos.productCategory,
+              artikelnummer: stockWhite.material_ID ?? '', // jetzt die weiße Rohware!
+              groesse:       pos.shirtSize,
+              farbcode:      parseCmykString(pos.color) ?? {},
+              typ:           'V-Ausschnitt',
+            },
             Status: 'ORDER_RECEIVED',
           })
         }
@@ -226,4 +240,20 @@ export async function getOrdersWithPositionStatus(status: POSITION_STATUS) {
     console.error('❌ Fehler beim Abrufen der Orders mit Position-Status:', err)
     throw err
   }
+}
+
+export function parseCmykString(color: string | null) {
+  if (!color) return null
+
+  const cmyk = color
+    .replace('cmyk(', '')
+    .replace(')', '')
+    .split(',')
+    .map((value) => parseFloat(value.trim()))
+
+  if (cmyk.length !== 4) return null
+
+  const [cyan, magenta, yellow, black] = cmyk
+
+  return { cyan, magenta, yellow, black }
 }

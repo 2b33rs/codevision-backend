@@ -2,17 +2,6 @@ import { describe, expect, it, vi } from 'vitest'
 import { app } from '../../vitest.setup'
 import { makeProduct } from '../../utils/test.factory'
 
-// Mock für externen Inventory-Service auf Basis der input-Daten
-vi.mock('../../external/inventory.service', () => ({
-  getInventoryCount: vi.fn().mockResolvedValue(0),
-  createProductionOrder: vi.fn().mockImplementation(async (input: any) => ({
-    status: 'ok',
-    message: `Produktionsauftrag für ${input.amount} Stück wurde erstellt`,
-    productId: input.productId,
-    amount: input.amount,
-  })),
-}))
-
 describe('Product Routes – vollständige Abdeckung', () => {
   it('POST   /product                      – create a product', async () => {
     const res = await app.inject({
@@ -90,25 +79,5 @@ describe('Product Routes – vollständige Abdeckung', () => {
     expect(res.statusCode).toBe(200)
     const deleted = res.json()
     expect(deleted.deletedAt).not.toBeNull()
-  })
-
-  it('POST   /product/:id/production-order – create production order', async () => {
-    const product = await makeProduct({
-      name: 'ProdOrderTest',
-      minAmount: 2,
-      color: 'cmyk(10%,20%,30%,40%)',
-      shirtSize: 'L',
-    })
-
-    const res = await app.inject({
-      method: 'POST',
-      url: `/product/${product.id}/production-order`,
-      payload: { amount: 5 },
-    })
-    expect(res.statusCode).toBe(200)
-    const body = res.json()
-    expect(body.status).toBe('ok')
-    expect(body.productId).toBe(product.id)
-    expect(body.amount).toBe(5)
   })
 })

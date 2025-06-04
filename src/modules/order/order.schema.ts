@@ -22,7 +22,7 @@ export const productionOrderZ = z.object({
 
 export const positionZ = z.object({
   amount: z.number().int().positive(),
-  pos_number: z.number().int().positive(),
+  pos_number: z.number().int().positive().optional(),
   name: z.string(),
   productCategory: z.enum(['T_SHIRT']) as z.ZodType<ProductCategory>,
   design: z.string(),

@@ -26,23 +26,10 @@ export const createProductZ = standardProductZ.omit({
 
 export const updateProductZ = createProductZ.partial()
 
-export const createProductionOrderZ = z.object({
-  amount: z.number().int().positive(),
-})
-
-export const productionOrderResponseZ = z.object({
-  status: z.literal('ok'),
-  message: z.string(),
-  productId: z.string().uuid(),
-  amount: z.number(),
-})
-
 export const schemas = {
   params: zodToJsonSchema(idParam),
   create: zodToJsonSchema(createProductZ),
   update: zodToJsonSchema(updateProductZ),
   product: zodToJsonSchema(standardProductZ),
   list: { type: 'array' as const, items: zodToJsonSchema(standardProductZ) },
-  productionOrder: zodToJsonSchema(createProductionOrderZ),
-  productionOrderResponse: zodToJsonSchema(productionOrderResponseZ),
 }
