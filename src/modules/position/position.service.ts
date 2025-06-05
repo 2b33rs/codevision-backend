@@ -1,7 +1,6 @@
 import { $Enums } from '../../../generated/prisma'
 import { prisma } from '../../plugins/prisma'
 import POSITION_STATUS = $Enums.POSITION_STATUS
-import ProductCategory = $Enums.ProductCategory
 import ShirtSize = $Enums.ShirtSize
 import PRODUCTION_ORDER_STATUS = $Enums.PRODUCTION_ORDER_STATUS
 
@@ -51,7 +50,7 @@ export async function createPosition(
   amount: number,
   pos_number: number,
   name: string,
-  productCategory: ProductCategory, // ✅ Parameter umbenennen
+  productCategory: string, // ✅ Parameter umbenennen
   design: string,
   color: string,
   shirtSize: ShirtSize,

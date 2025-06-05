@@ -8,7 +8,7 @@ import { $Enums } from '../../../generated/prisma'
 import { app } from '../../vitest.setup'
 import { makeCustomer, makeOrder, makePosition } from '../../utils/test.factory'
 
-type ProductCategory = $Enums.ProductCategory
+type ProductCategory = string
 type ShirtSize = $Enums.ShirtSize
 type POSITION_STATUS = $Enums.POSITION_STATUS
 

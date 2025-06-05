@@ -40,7 +40,6 @@ model Order {
   customerId  String?
   positions   Position[]
 
-  // 👇 Verknüpfung zur Beschwerde, wenn die Order aus einer Complaint entstanden ist
   generatedFromComplaint Complaint? @relation("ComplaintToOrder")
 }
 
@@ -62,24 +61,26 @@ model Position {
   amount            Int
   name              String
   color             String?
-  shirtSize         ShirtSize?
-  productCategory   ProductCategory
+  shirtSize         String?
+  productCategory   String
   design            String
+  typ               String[]
 }
 
 model StandardProduct {
-  id                 String          @id @default(uuid())
+  id                 String    @id @default(uuid())
   deletedAt          DateTime?
   //
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
   name               String
   color              String?
-  shirtSize          ShirtSize?
-  productCategory    ProductCategory
+  shirtSize          String?
+  productCategory    String
   minAmount          Int
-  currentStock       Int             @default(0)
-  amountInProduction Int             @default(0)
+  currentStock       Int       @default(0)
+  amountInProduction Int       @default(0)
+  typ                String[]
 }
 
 model Complaint {
@@ -88,11 +89,9 @@ model Complaint {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  // 👇 Position, zu der sich die Beschwerde bezieht
   position   Position @relation(fields: [positionId], references: [id])
   positionId String
 
-  // 👇 Neue Order, die ggf. aus der Beschwerde entsteht
   newOrderId String? @unique
   newOrder   Order?  @relation("ComplaintToOrder", fields: [newOrderId], references: [id])
 
@@ -152,10 +151,6 @@ enum ComplaintReason {
   BAD_QUALITY
   NOT_AS_DESCRIBED
   OTHER
-}
-
-enum ProductCategory {
-  T_SHIRT
 }
 
 enum CustomerType {

@@ -1,10 +1,5 @@
 import { faker } from '@faker-js/faker'
-import {
-  $Enums,
-  ComplaintReason,
-  ComplaintKind,
-  ProductCategory,
-} from '../generated/prisma'
+import { $Enums, ComplaintKind, ComplaintReason } from '../generated/prisma'
 import { prisma } from '../src/plugins/prisma'
 import POSITION_STATUS = $Enums.POSITION_STATUS
 import ShirtSize = $Enums.ShirtSize
@@ -20,18 +15,31 @@ async function main() {
   let orderSequence = 1
 
   // === 1. Erzeuge Standardprodukte ===
-  const standardProducts = await prisma.standardProduct.createMany({
-    data: Array.from({ length: 5 }).map(() => ({
-      name: faker.commerce.productName(),
-      minAmount: faker.number.int({ min: 1, max: 20 }),
-      color: `cmyk(${Array.from({ length: 4 })
-        .map(() => `${faker.number.int({ min: 0, max: 100 })}%`)
-        .join(',')})`,
-      shirtSize: faker.helpers.arrayElement(sizes),
-      productCategory: ProductCategory.T_SHIRT,
-      amountInProduction: faker.number.int({ min: 0, max: 50 }),
-    })),
-  })
+  const standardProducts = []
+  const allTypen = [
+    'Sport',
+    'Rundhals',
+    'Oversize',
+    'Top',
+    'V-Ausschnitt',
+    'Bedruckt',
+  ]
+  for (let i = 0; i < 5; i++) {
+    const product = await prisma.standardProduct.create({
+      data: {
+        name: faker.commerce.productName(),
+        minAmount: faker.number.int({ min: 1, max: 20 }),
+        color: `cmyk(${Array.from({ length: 4 })
+          .map(() => `${faker.number.int({ min: 0, max: 100 })}%`)
+          .join(',')})`,
+        shirtSize: faker.helpers.arrayElement(sizes),
+        productCategory: 'T-Shirt',
+        amountInProduction: faker.number.int({ min: 0, max: 50 }),
+        typ: faker.helpers.arrayElements(allTypen, { min: 1, max: 3 }),
+      },
+    })
+    standardProducts.push(product)
+  }
 
   // Hole die erzeugten Standardprodukte inkl. IDs
   const allStandardProducts = await prisma.standardProduct.findMany()
@@ -90,7 +98,7 @@ async function main() {
                 .map(() => `${faker.number.int({ min: 0, max: 100 })}%`)
                 .join(',')})`,
               shirtSize: faker.helpers.arrayElement(sizes),
-              productCategory: ProductCategory.T_SHIRT,
+              productCategory: 'T-Shirt',
               Status: POSITION_STATUS.CANCELLED,
               standardProductId: maybeStandardProduct?.id ?? null,
               complaints: {
@@ -116,7 +124,7 @@ async function main() {
                 .map(() => `${faker.number.int({ min: 0, max: 100 })}%`)
                 .join(',')})`,
               shirtSize: faker.helpers.arrayElement(sizes),
-              productCategory: ProductCategory.T_SHIRT,
+              productCategory: 'T-Shirt',
               Status: faker.helpers.arrayElement(
                 statuses.filter((s) => s !== POSITION_STATUS.CANCELLED),
               ),

@@ -22,7 +22,7 @@ describe('Product Routes – vollständige Abdeckung', () => {
         name: 'E2E Product',
         color: 'cmyk(0%,0%,0%,0%)',
         shirtSize: 'M',
-        productCategory: 'T_SHIRT',
+        productCategory: 'T-Shirt',
         minAmount: 1,
       },
     })

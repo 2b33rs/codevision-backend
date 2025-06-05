@@ -10,10 +10,11 @@ export const standardProductZ = z.object({
   deletedAt: z.string().datetime().nullable(),
   name: z.string(),
   color: z.string().nullable(),
-  shirtSize: z.enum(['S', 'M', 'L', 'XL']).nullable(),
-  productCategory: z.enum(['T_SHIRT']),
+  shirtSize: z.string().nullable(),
+  productCategory: z.string(),
   minAmount: z.number(),
   currentStock: z.number(),
+  typ: z.array(z.string()),
 })
 
 export const createProductZ = standardProductZ.omit({
