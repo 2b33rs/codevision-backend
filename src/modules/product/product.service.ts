@@ -1,6 +1,11 @@
 import { FastifyReply, FastifyRequest } from 'fastify'
 import { prisma } from '../../plugins/prisma'
-import { $Enums, Prisma, StandardProduct } from '../../../generated/prisma'
+import {
+  $Enums,
+  Prisma,
+  ShirtSize,
+  StandardProduct,
+} from '../../../generated/prisma'
 import { getInventoryCount } from '../../external/inventory.service'
 
 type IdParam = { id: string }
@@ -33,7 +38,7 @@ export async function read(
 
   const currentStock = await getInventoryCount({
     color: product.color,
-    shirtSize: product.shirtSize,
+    shirtSize: product.shirtSize as ShirtSize,
   })
 
   res.send({

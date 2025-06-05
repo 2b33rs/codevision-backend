@@ -2,7 +2,6 @@ import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 import { $Enums } from '../../../generated/prisma'
 
-type ProductCategory = $Enums.ProductCategory
 type ShirtSize = $Enums.ShirtSize
 /* ───────── Zod-Schemas (für Typing & Runtime-Validation) ───────── */
 
@@ -10,7 +9,7 @@ export const positionZ = z.object({
   amount: z.number().int().positive(),
   pos_number: z.number().int().positive(),
   name: z.string(),
-  productCategory: z.enum(['T_SHIRT']) as z.ZodType<ProductCategory>,
+  productCategory: z.string(),
   design: z.string(),
   color: z
     .string()

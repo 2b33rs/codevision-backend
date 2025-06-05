@@ -8,14 +8,13 @@ import {
 } from '../../external/inventory.service'
 import POSITION_STATUS = $Enums.POSITION_STATUS
 
-type ProductCategory = $Enums.ProductCategory
 type ShirtSize = $Enums.ShirtSize
 
 export interface PositionInput {
   amount: number
   pos_number: number
   name: string
-  productCategory: ProductCategory
+  productCategory: string
   design: string
   color: string
   shirtSize: ShirtSize
@@ -79,7 +78,7 @@ export async function createOrder(
       createdPositions.map(async (pos) => {
         const currentStock = await getInventoryCount({
           color: pos.color,
-          shirtSize: pos.shirtSize,
+          shirtSize: pos.shirtSize as ShirtSize,
           design: pos.design,
         })
 
