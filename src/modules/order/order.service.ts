@@ -1,11 +1,10 @@
 import { prisma } from '../../plugins/prisma'
 import { randomUUID } from 'crypto'
 import { createPosition } from '../position/position.service'
-import { $Enums, Order, Position } from '../../../generated/prisma'
-import {
-  createProductionOrder,
-  getInventoryCount,
-} from '../../external/inventory.service'
+import { $Enums } from '../../../generated/prisma'
+import { getInventoryCount } from '../../external/mawi.service'
+import { parseCmykString } from '../../utils/color.util'
+import { createProductionOrder } from '../productionOrder/productionOrder.service'
 import POSITION_STATUS = $Enums.POSITION_STATUS
 
 type ShirtSize = $Enums.ShirtSize
@@ -62,7 +61,9 @@ export async function createOrder(
         })
         const nextPosNumber = existingPosCount + 1
 
-        console.log(`📌 Neue Position #${nextPosNumber} für Order: ${order.orderNumber}`)
+        console.log(
+          `📌 Neue Position #${nextPosNumber} für Order: ${order.orderNumber}`,
+        )
 
         // createPosition aufrufen und den berechneten nextPosNumber übergeben
         return createPosition(
@@ -116,16 +117,16 @@ export async function createOrder(
           const toPrint = Math.min(remaining, availableForPrint)
           await createProductionOrder({
             positionId: pos.id,
-            amount:     toPrint,
-            designUrl:  pos.design,
-            orderType:  'BEDRUCKEN',
+            amount: toPrint,
+            designUrl: pos.design,
+            orderType: 'BEDRUCKEN',
             dyeingNecessary: false,
             productTemplate: {
-              kategorie:     pos.productCategory,
-              artikelnummer: stockWithoutDesign.material_ID ?? '',
-              groesse:       pos.shirtSize,
-              farbcode:      parseCmykString(pos.color) ?? {}, // <-- hier Objekt statt String
-              typ:           'V-Ausschnitt',
+              kategorie: pos.productCategory,
+              artikelnummer: stockWithoutDesign.material_ID ?? 0,
+              groesse: pos.shirtSize ?? 'M',
+              farbcode: parseCmykString(pos.color) ?? {},
+              typ: 'V-Ausschnitt',
             },
             Status: 'ORDER_RECEIVED',
           })
@@ -144,16 +145,16 @@ export async function createOrder(
 
           await createProductionOrder({
             positionId: pos.id,
-            amount:     remaining,
-            designUrl:  pos.design,
-            orderType:  'FAERBEN_UND_BEDRUCKEN',
+            amount: remaining,
+            designUrl: pos.design,
+            orderType: 'FAERBEN_UND_BEDRUCKEN',
             dyeingNecessary: true,
             productTemplate: {
-              kategorie:     pos.productCategory,
-              artikelnummer: stockWhite.material_ID ?? '', // jetzt die weiße Rohware!
-              groesse:       pos.shirtSize,
-              farbcode:      parseCmykString(pos.color) ?? {},
-              typ:           'V-Ausschnitt',
+              kategorie: pos.productCategory,
+              artikelnummer: stockWhite.material_ID ?? 0,
+              groesse: pos.shirtSize ?? 'M',
+              farbcode: parseCmykString(pos.color) ?? {},
+              typ: 'V-Ausschnitt',
             },
             Status: 'ORDER_RECEIVED',
           })
@@ -239,20 +240,4 @@ export async function getOrdersWithPositionStatus(status: POSITION_STATUS) {
     console.error('❌ Fehler beim Abrufen der Orders mit Position-Status:', err)
     throw err
   }
-}
-
-export function parseCmykString(color: string | null) {
-  if (!color) return null
-
-  const cmyk = color
-    .replace('cmyk(', '')
-    .replace(')', '')
-    .split(',')
-    .map((value) => parseFloat(value.trim()))
-
-  if (cmyk.length !== 4) return null
-
-  const [cyan, magenta, yellow, black] = cmyk
-
-  return { cyan, magenta, yellow, black }
 }

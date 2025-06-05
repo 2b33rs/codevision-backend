@@ -1,12 +1,7 @@
 import { FastifyReply, FastifyRequest } from 'fastify'
 import { prisma } from '../../plugins/prisma'
-import {
-  $Enums,
-  Prisma,
-  ShirtSize,
-  StandardProduct,
-} from '../../../generated/prisma'
-import { getInventoryCount } from '../../external/inventory.service'
+import { Prisma, ShirtSize, StandardProduct } from '../../../generated/prisma'
+import { getInventoryCount } from '../../external/mawi.service'
 
 type IdParam = { id: string }
 type CreateBody = Prisma.StandardProductCreateInput
@@ -45,24 +40,6 @@ export async function read(
     ...product,
     currentStock,
   })
-}
-
-export async function createProductionOrder(
-  req: FastifyRequest<{ Params: { id: string }; Body: { amount: number } }>,
-  reply: FastifyReply,
-) {
-  const { id } = req.params
-  const { amount } = req.body
-
-  console.log(`Produktionsauftrag für Produkt ${id}, Menge: ${amount}`)
-
-  // Beispiel: Produkt mit inProduction-Feld hochzählen
-  return {
-    status: 'ok',
-    message: `Produktionsauftrag für ${amount} Stück wurde erstellt`,
-    productId: id,
-    amount,
-  }
 }
 
 export async function list(
