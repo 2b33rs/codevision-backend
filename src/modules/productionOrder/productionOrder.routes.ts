@@ -1,17 +1,18 @@
 import { FastifyInstance } from 'fastify'
-import { createProductionOrderZ } from './productionOrder.schema'
+
 import { productionOrderResponseZ } from '../product/product.schema'
 import { createProductionOrder } from './productionOrder.service'
+import { createProductionOrderSchema } from './productionOrder.schema'
 
 export async function productionOrderRoutes(fastify: FastifyInstance) {
-  fastify.post('/:id/production-order', {
+  fastify.post('/:productId/production-order', {
     schema: {
       tags: ['ProductionOrder'],
       description: 'Erstellt einen Produktionsauftrag für ein Produkt',
       params: {
-        id: { type: 'string', description: 'Positions-ID' },
+        productId: { type: 'string', description: 'ID vom Standardprodukt' },
       },
-      body: createProductionOrderZ,
+      body: createProductionOrderSchema,
       response: {
         200: productionOrderResponseZ,
       },

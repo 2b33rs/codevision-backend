@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { $Enums } from '../../../generated/prisma'
+import { zodToJsonSchema } from 'zod-to-json-schema'
 
 export const createProductionOrderZ = z.object({
   positionId: z.string(),
@@ -18,3 +19,6 @@ export const createProductionOrderZ = z.object({
 })
 
 export type CreateProductionOrderType = z.infer<typeof createProductionOrderZ>
+export const createProductionOrderSchema = {
+  ...zodToJsonSchema(createProductionOrderZ),
+}
