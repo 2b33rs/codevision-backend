@@ -1,10 +1,5 @@
 import { faker } from '@faker-js/faker'
-import {
-  $Enums,
-  ComplaintReason,
-  ComplaintKind,
-  ProductCategory,
-} from '../generated/prisma'
+import { $Enums, ComplaintKind, ComplaintReason } from '../generated/prisma'
 import { prisma } from '../src/plugins/prisma'
 import POSITION_STATUS = $Enums.POSITION_STATUS
 import ShirtSize = $Enums.ShirtSize
@@ -38,7 +33,7 @@ async function main() {
           .map(() => `${faker.number.int({ min: 0, max: 100 })}%`)
           .join(',')})`,
         shirtSize: faker.helpers.arrayElement(sizes),
-        productCategory: ProductCategory.T_SHIRT,
+        productCategory: 'T-Shirt',
         amountInProduction: faker.number.int({ min: 0, max: 50 }),
         typ: faker.helpers.arrayElements(allTypen, { min: 1, max: 3 }),
       },
@@ -103,7 +98,7 @@ async function main() {
                 .map(() => `${faker.number.int({ min: 0, max: 100 })}%`)
                 .join(',')})`,
               shirtSize: faker.helpers.arrayElement(sizes),
-              productCategory: ProductCategory.T_SHIRT,
+              productCategory: 'T-Shirt',
               Status: POSITION_STATUS.CANCELLED,
               standardProductId: maybeStandardProduct?.id ?? null,
               complaints: {
@@ -129,7 +124,7 @@ async function main() {
                 .map(() => `${faker.number.int({ min: 0, max: 100 })}%`)
                 .join(',')})`,
               shirtSize: faker.helpers.arrayElement(sizes),
-              productCategory: ProductCategory.T_SHIRT,
+              productCategory: 'T-Shirt',
               Status: faker.helpers.arrayElement(
                 statuses.filter((s) => s !== POSITION_STATUS.CANCELLED),
               ),
