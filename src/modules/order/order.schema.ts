@@ -36,7 +36,7 @@ export const positionZ = z.object({
 
 export const orderBaseZ = z.object({
   customerId: z.string().uuid(),
-  customer: customerZ,
+  customer: customerZ.optional(),
 
   id: z.string().uuid().optional(),
   createdAt: z.string().datetime().optional(),
