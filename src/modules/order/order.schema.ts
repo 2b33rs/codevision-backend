@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 import { $Enums } from '../../../generated/prisma'
+import { customerZ } from '../customer/customer.schema'
 
 type ShirtSize = $Enums.ShirtSize
 /* ───────── Zod-Schemas (für Typing & Runtime-Validation) ───────── */
@@ -35,6 +36,7 @@ export const positionZ = z.object({
 
 export const orderBaseZ = z.object({
   customerId: z.string().uuid(),
+  customer: customerZ,
 
   id: z.string().uuid().optional(),
   createdAt: z.string().datetime().optional(),
