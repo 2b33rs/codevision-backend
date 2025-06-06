@@ -12,6 +12,7 @@ export async function createComplaint(input: {
   ComplaintKind: ComplaintKind
   createNewOrder: boolean
 }) {
+  // Position aus der Datenbank abrufen
   const position = await prisma.position.findUnique({
     where: { id: input.positionId },
     include: { order: true },
@@ -20,7 +21,6 @@ export async function createComplaint(input: {
   if (!position) throw new Error('Position not found')
 
   const compositeId = `${position.order.orderNumber}.${position.pos_number}`
-
   let newOrderId: string | undefined = undefined
 
   // === Neue Order erzeugen, wenn Flag aktiv ===
@@ -48,15 +48,16 @@ export async function createComplaint(input: {
 
     newOrderId = newOrder.id
 
+    // Status der Position aktualisieren, wenn der Beschwerdegrund nicht 'OTHER' ist
     if (input.ComplaintReason !== 'OTHER') {
       await updatePositionStatusByBusinessKey(compositeId, 'IN_PROGRESS')
     }
   } else {
-    // Wenn keine neue Order gewünscht: Storno
+    // Wenn keine neue Order gewünscht: Storno der Position
     await updatePositionStatusByBusinessKey(compositeId, 'CANCELLED')
   }
 
-  // === Complaint mit optionaler Verknüpfung zur neuen Order ===
+  // === Beschwerde mit optionaler Verknüpfung zur neuen Order erstellen ===
   const complaint = await prisma.complaint.create({
     data: {
       positionId: input.positionId,
@@ -80,70 +81,3 @@ export async function createComplaint(input: {
 
   return complaint
 }
-
-export const getComplaintsByPosition = (positionId: string) =>
-  prisma.complaint.findMany({
-    where: { positionId },
-    include: {
-      position: {
-        include: {
-          order: {
-            include: {
-              positions: true,
-              customer: true,
-            },
-          },
-        },
-      },
-    },
-  })
-
-export const getComplaintsByOrder = (orderId: string) =>
-  prisma.complaint.findMany({
-    where: { position: { orderId } },
-    include: {
-      position: {
-        include: {
-          order: {
-            include: {
-              positions: true,
-              customer: true,
-            },
-          },
-        },
-      },
-    },
-  })
-
-export const getComplaintsByCustomer = (customerId: string) =>
-  prisma.complaint.findMany({
-    where: { position: { order: { customerId } } },
-    include: {
-      position: {
-        include: {
-          order: {
-            include: {
-              positions: true,
-              customer: true,
-            },
-          },
-        },
-      },
-    },
-  })
-
-export const getAllComplaints = () =>
-  prisma.complaint.findMany({
-    include: {
-      position: {
-        include: {
-          order: {
-            include: {
-              positions: true,
-              customer: true,
-            },
-          },
-        },
-      },
-    },
-  })

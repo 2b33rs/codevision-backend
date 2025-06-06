@@ -130,14 +130,22 @@ export async function createOrder(
 }
 
 export const getOrderById = (id: string) =>
-  prisma.order.findUnique({ where: { id }, include: { positions: true } })
+  prisma.order.findUnique({
+    where: { id },
+    include: { positions: true, customer: true },
+  })
 
 export const getOrdersByCustomer = (customerId: string) =>
-  prisma.order.findMany({ where: { customerId }, include: { positions: true } })
+  prisma.order.findMany({
+    where: { customerId },
+    include: { positions: true, customer: true },
+  })
 
 export const getAllOrders = async () => {
   try {
-    let newVar = await prisma.order.findMany({ include: { positions: true } })
+    let newVar = await prisma.order.findMany({
+      include: { positions: true, customer: true },
+    })
     return newVar
   } catch (err) {
     console.error('❌ Fehler beim Laden der Orders:', err)
@@ -157,6 +165,7 @@ export async function getOrdersWithPositionStatus(status: POSITION_STATUS) {
       },
       include: {
         positions: true,
+        customer: true,
       },
     })
   } catch (err) {

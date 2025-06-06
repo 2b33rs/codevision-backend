@@ -172,6 +172,7 @@ describe('Order Routes', () => {
     expect(res.statusCode).toBe(200)
     const body = await res.json()
     expect(body.id).toBe(order.id)
+    expect(body.customer.addr_country).toBe('DE')
     expect(body.positions).toHaveLength(1)
   })
 
