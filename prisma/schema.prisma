@@ -53,6 +53,7 @@ model Position {
   orderId           String
   complaints        Complaint[]
   standardProductId String?
+  productionOrders  ProductionOrder[]
   //
   pos_number        Int
   description       String?
@@ -64,6 +65,23 @@ model Position {
   productCategory   String
   design            String
   typ               String[]
+}
+
+model ProductionOrder {
+  id                          String      @id @default(uuid())
+  createdAt                   DateTime    @default(now())
+  updatedAt                   DateTime    @updatedAt
+  deletedAt                   DateTime?
+  //
+  position                    Position    @relation(fields: [positionId], references: [id])
+  positionId                  String
+  amount                      Int
+  designUrl                   String
+  orderType                   String
+  dyeingNecessary             Boolean
+  productTemplate             Json       // <-- JSON-Feld für das Template
+  Status                      PRODUCTION_ORDER_STATUS 
+  productionorder_number      Int
 }
 
 model StandardProduct {
@@ -106,6 +124,15 @@ enum POSITION_STATUS {
   READY_FOR_INSPECTION
   COMPLETED
   CANCELLED
+}
+
+enum PRODUCTION_ORDER_STATUS {
+  CANCELLED
+  ORDER_RECEIVED
+  AUTHORISED
+  DYEING
+  PRINTING
+  COMPLETED
 }
 
 enum ComplaintReason {

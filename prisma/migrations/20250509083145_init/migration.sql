@@ -1,6 +1,9 @@
 CREATE TYPE "POSITION_STATUS" AS ENUM ('IN_PROGRESS', 'READY_FOR_SHIPMENT', 'READY_FOR_INSPECTION', 'INSPECTED', 'COMPLETED', 'CANCELLED');
 
 -- CreateEnum
+CREATE TYPE "PRODUCTION_ORDER_STATUS" AS ENUM ('ORDER_RECEIVED', 'AUTHORISED', 'DYEING', 'PRINTING', 'COMPLETED');
+
+-- CreateEnum
 CREATE TYPE "ComplaintReason" AS ENUM ('WRONG_SIZE', 'WRONG_COLOR', 'PRINT_INCORRECT', 'PRINT_OFF_CENTER', 'DAMAGED_ITEM', 'STAINED', 'LATE_DELIVERY', 'WRONG_PRODUCT', 'MISSING_ITEM', 'BAD_QUALITY', 'NOT_AS_DESCRIBED', 'OTHER');
 
 -- CreateEnum
@@ -73,6 +76,24 @@ CREATE TABLE "Position" (
     "design" TEXT NOT NULL,
 
     CONSTRAINT "Position_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ProductionOrder" (
+    "id" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deletedAt" TIMESTAMP(3),
+    "positionId" TEXT NOT NULL,
+    "amount" INTEGER NOT NULL,
+    "designUrl" TEXT NOT NULL,
+    "orderType" TEXT NOT NULL,
+    "dyeingNecessary" BOOLEAN NOT NULL,
+    "productTemplate" JSONB NOT NULL,
+    "Status" "PRODUCTION_ORDER_STATUS" NOT NULL,
+    "productionorder_number" INTEGER NOT NULL,
+
+    CONSTRAINT "ProductionOrder_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
