@@ -35,7 +35,7 @@ async function main() {
         shirtSize: faker.helpers.arrayElement(sizes),
         productCategory: 'T-Shirt',
         amountInProduction: faker.number.int({ min: 0, max: 50 }),
-        typ: faker.helpers.arrayElements(allTypen, { min: 1, max: 3 }),
+        typ: faker.helpers.arrayElements(allTypen, { min: 1, max: 1 }),
       },
     })
     standardProducts.push(product)
