@@ -1,24 +1,25 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import {
-  createComplaint,
-  getAllComplaints,
-  getComplaintsByCustomer,
-  getComplaintsByOrder,
-  getComplaintsByPosition,
-} from './complaint.service'
+import { createComplaint } from './complaint.service'
 import {
   complaintSchemas,
   complaintPostZ,
   complaintQueryZ,
 } from './complaint.schema'
+import {
+  getAllComplaints,
+  getComplaintsByCustomer,
+  getComplaintsByOrder,
+  getComplaintsByPosition,
+} from './complaint.repo'
 
 export default async function complaintRoutes(fastify: FastifyInstance) {
   fastify.get('/', {
     schema: {
       tags: ['Complaint'],
       summary: 'Get complaints',
-      description: 'Returns complaints, filtered by positionId, orderId or customerId',
+      description:
+        'Returns complaints, filtered by positionId, orderId or customerId',
       querystring: complaintSchemas.queryGet,
     },
     handler: async (request, reply) => {
@@ -56,7 +57,9 @@ export default async function complaintRoutes(fastify: FastifyInstance) {
         return reply.send(result)
       } catch (err) {
         if (err instanceof z.ZodError) {
-          return reply.status(400).send({ message: 'Validation error', issues: err.errors })
+          return reply
+            .status(400)
+            .send({ message: 'Validation error', issues: err.errors })
         }
         console.error(err)
         return reply.status(500).send({ message: 'Server error' })

@@ -24,6 +24,7 @@ describe('Product Routes – vollständige Abdeckung', () => {
         shirtSize: 'M',
         productCategory: 'T-Shirt',
         minAmount: 1,
+        typ: [],
       },
     })
     expect(res.statusCode).toBe(200)
