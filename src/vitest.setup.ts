@@ -3,6 +3,7 @@ import Fastify from 'fastify'
 import { prisma } from './plugins/prisma'
 import { registerPlugins } from './plugins/register-plugins'
 import { registerModules } from './modules/register-modules'
+import { defineConfig } from 'vitest/config'
 
 export let app: ReturnType<typeof Fastify>
 
