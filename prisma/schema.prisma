@@ -59,6 +59,7 @@ model Position {
   description       String?
   Status            POSITION_STATUS   @default(IN_PROGRESS)
   amount            Int
+  price             Decimal
   name              String
   color             String?
   shirtSize         String?

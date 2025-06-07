@@ -1,3 +1,4 @@
+// src/modules/position/position.routes.ts
 import { FastifyInstance } from 'fastify'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 
@@ -20,7 +21,7 @@ export default async function positionRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['Position'],
       description:
-        'Update the status of an existing position using a composite business key',
+        'Update the status of an existing position or production order using a composite business key',
       params: zodToJsonSchema(positionStatusPatchSchema.shape.params),
       body: zodToJsonSchema(positionStatusPatchSchema.shape.body),
       response: {
@@ -57,6 +58,7 @@ export default async function positionRoutes(fastify: FastifyInstance) {
       const pos = await createPosition(
         data.orderId,
         data.amount,
+        data.price,
         data.pos_number,
         data.name,
         data.productCategory,

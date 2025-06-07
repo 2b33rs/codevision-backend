@@ -1,21 +1,21 @@
+// src/modules/position/position.schema.ts
 import { z } from 'zod'
+import { $Enums } from '../../../generated/prisma'
 
-// Enum-Definitionen
-export const ShirtSizeEnum = z.enum(['S', 'M', 'L', 'XL'])
-export const ProductCategoryEnum = z.enum(['T_SHIRT'])
-export const PositionStatusEnum = z.enum([
-  'IN_PROGRESS',
-  'READY_FOR_INSPECTION',
-  'INSPECTED',
-  'READY_FOR_SHIPMENT',
-  'COMPLETED',
-  'CANCELLED',
-])
+// Zod-Enums aus Prisma
+const PositionStatusEnum = z.nativeEnum($Enums.POSITION_STATUS)
+const ProductionOrderStatusEnum = z.nativeEnum($Enums.PRODUCTION_ORDER_STATUS)
+
+// Erlaubt:
+//   orderNumber.posNumber
+//   orderNumber.posNumber.productionOrderId
+const compositeIdPattern = /^[^.]+\.\d+(?:\.[^.]+)?$/
 
 // Schema für Route-Parameter /:compositeId
 export const positionParamsSchema = z.object({
-  compositeId: z.string().regex(/^[^.]+\.\d+$/, {
-    message: 'compositeId muss im Format "orderNumber.pos_number" sein',
+  compositeId: z.string().regex(compositeIdPattern, {
+    message:
+      'compositeId muss im Format "orderNumber.posNumber" oder "orderNumber.posNumber.productionOrderId" sein',
   }),
 })
 
@@ -23,7 +23,8 @@ export const positionParamsSchema = z.object({
 export const positionStatusPatchSchema = z.object({
   params: positionParamsSchema,
   body: z.object({
-    status: PositionStatusEnum,
+    // erlaubt sowohl Position-Status als auch ProductionOrder-Status
+    status: z.union([PositionStatusEnum, ProductionOrderStatusEnum]),
   }),
 })
 
@@ -33,9 +34,10 @@ export const positionCreateSchema = z.object({
     orderId: z.string().uuid(),
     description: z.string().optional().nullable(),
     amount: z.number().int().positive(),
+    price: z.string().regex(/^\d+(\.\d{1,2})?$/, { message: 'Invalid price format' }),
     pos_number: z.number().int().positive(),
     name: z.string(),
-    productCategory: ProductCategoryEnum,
+    productCategory: z.enum(['T_SHIRT']),
     design: z.string(),
     color: z
       .string()
@@ -49,7 +51,8 @@ export const positionCreateSchema = z.object({
           ),
         { message: 'Invalid CMYK value' },
       ),
-    shirtSize: ShirtSizeEnum,
+    shirtSize: z.enum(['S', 'M', 'L', 'XL']),
+    standardProductId: z.string().uuid().optional().nullable(),
   }),
 })
 
@@ -65,20 +68,21 @@ export const requestFinishedGoodsSchema = z.object({
   }),
 })
 
-// Neues Response-Schema für Position (alle zurückgegebenen Felder)
+// Response-Schema für Position
 export const positionResponseSchema = z.object({
   id: z.string().uuid(),
   orderId: z.string().uuid(),
   amount: z.number().int().positive(),
+  price: z.string().regex(/^\d+(\.\d{1,2})?$/, { message: 'Invalid price format' }),
   pos_number: z.number().int().positive(),
   name: z.string(),
-  productCategory: ProductCategoryEnum,
+  productCategory: z.enum(['T_SHIRT']),
   design: z.string(),
   color: z.string(),
-  shirtSize: ShirtSizeEnum,
+  shirtSize: z.enum(['S', 'M', 'L', 'XL']),
   description: z.string().nullable().optional(),
-  standardProductId: z.string().uuid().nullable().optional(),
+  standardProductId: z.string().uuid().optional().nullable(),
   Status: PositionStatusEnum,
-  createdAt: z.string(),
-  updatedAt: z.string(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
 })

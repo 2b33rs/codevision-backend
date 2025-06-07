@@ -134,27 +134,32 @@ export const createProductionOrderZ = z.object({
 })
 
 export type CreateProductionOrderInput = z.infer<typeof createProductionOrderZ>
-
 export async function createProductionOrder(input: unknown) {
   const parsed = createProductionOrderZ.parse(input)
 
   console.log(
-    `[MOCK] ProductionOrder: Produkt=${parsed.positionId}, Menge=${parsed.amount}, Farbe=${parsed.color}, Größe=${parsed.shirtSize}, Design=${parsed.design}`,
+    `🏭 Produktionsauftrag: Position=${parsed.positionId}, Menge=${parsed.amount}, Farbe=${parsed.color}, Größe=${parsed.shirtSize}, Design=${parsed.design}`,
   )
 
-  // === Neue Logik: amountInProduction hochzählen ===
-  await prisma.standardProduct.update({
-    where: { id: parsed.positionId },
+  // Produktionsauftrag in die DB schreiben
+  const newProductionOrder = await prisma.productionOrder.create({
     data: {
-      amountInProduction: {
-        increment: parsed.amount,
-      },
+      position: { connect: { id: parsed.positionId } },
+      amount: parsed.amount,
+      designUrl: 'https://placeholder.design.url', // ⬅ ggf. dynamisch ersetzen
+      orderType: 'STANDARD',                      // ⬅ Beispielwert, ggf. sinnvoll ersetzen
+      dyeingNecessary: true,                      // ⬅ Beispielwert
+      materialId: 0,                               // ⬅ ggf. aus getInventoryCount extrahieren
+      productTemplate: {},                         // ⬅ oder generieren
+      Status: 'ORDER_RECEIVED',                    // ⬅ Standard-Startstatus
+      productionorder_number: Math.floor(Math.random() * 1000000), // ⬅ Beispiel
     },
   })
 
   return {
     status: 'ok' as const,
-    message: `Produktionsauftrag über ${parsed.amount} Stück ausgelöst`,
-    ...parsed,
+    message: `Produktionsauftrag über ${parsed.amount} Stück erstellt`,
+    productionOrderId: newProductionOrder.id,
   }
 }
+

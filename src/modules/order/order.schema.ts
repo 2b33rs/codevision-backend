@@ -8,6 +8,7 @@ type ShirtSize = $Enums.ShirtSize
 
 export const positionZ = z.object({
   amount: z.number().int().positive(),
+  price: z.string().regex(/^\d+(\.\d{1,2})?$/, { message: 'Invalid price format' }),
   pos_number: z.number().int().positive(),
   name: z.string(),
   productCategory: z.string(),

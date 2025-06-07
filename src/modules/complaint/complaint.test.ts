@@ -9,10 +9,9 @@ import {
 
 describe('Complaint routes', () => {
   it('POST /complaints should create a new complaint and return it', async () => {
-    // Arrange using factories
     const customer = await makeCustomer()
     const order = await makeOrder(customer.id)
-    const position = await makePosition(order.id)
+    const position = await makePosition(order.id)   // price is set by factory
 
     const response = await app.inject({
       method: 'POST',
@@ -26,7 +25,7 @@ describe('Complaint routes', () => {
     })
 
     expect(response.statusCode).toBe(200)
-    const body = response.json()
+    const body = await response.json()
     expect(body.positionId).toBe(position.id)
     expect(body.ComplaintReason).toBe('WRONG_SIZE')
     expect(body.ComplaintKind).toBe('INTERN')
@@ -44,7 +43,7 @@ describe('Complaint routes', () => {
     })
 
     expect(response.statusCode).toBe(200)
-    const body = response.json()
+    const body = await response.json()
     expect(body.some((c: any) => c.id === complaint.id)).toBe(true)
   })
 
@@ -60,7 +59,7 @@ describe('Complaint routes', () => {
     })
 
     expect(response.statusCode).toBe(200)
-    const body = response.json()
+    const body = await response.json()
     expect(body.some((c: any) => c.id === complaint.id)).toBe(true)
   })
 
@@ -76,7 +75,7 @@ describe('Complaint routes', () => {
     })
 
     expect(response.statusCode).toBe(200)
-    const body = response.json()
+    const body = await response.json()
     expect(body.some((c: any) => c.id === complaint.id)).toBe(true)
   })
 
@@ -92,7 +91,7 @@ describe('Complaint routes', () => {
     })
 
     expect(response.statusCode).toBe(200)
-    const body = response.json()
+    const body = await response.json()
     expect(body.some((c: any) => c.id === complaint.id)).toBe(true)
   })
 })
