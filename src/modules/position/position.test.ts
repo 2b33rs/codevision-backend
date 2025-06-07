@@ -6,7 +6,12 @@ import {
 } from './position.service'
 import { $Enums } from '../../../generated/prisma'
 import { app } from '../../vitest.setup'
-import { makeCustomer, makeOrder, makePosition } from '../../utils/test.factory'
+import {
+  makeCustomer,
+  makeOrder,
+  makePosition,
+  makeProductionOrder,
+} from '../../utils/test.factory'
 
 type ProductCategory = string
 type ShirtSize = $Enums.ShirtSize
@@ -155,10 +160,12 @@ describe('Position Routes', () => {
       pos_number: 1,
       Status: 'READY_FOR_SHIPMENT',
     })
+    await makeProductionOrder(pos1.id)
     const pos2 = await makePosition(order.id, {
       pos_number: 2,
       Status: 'READY_FOR_SHIPMENT',
     })
+    await makeProductionOrder(pos2.id)
 
     // Endpoint aufrufen
     const res = await app.inject({
@@ -176,9 +183,8 @@ describe('Position Routes', () => {
     expect(body.orderNumber).toBe(order.orderNumber)
     expect(body.results).toHaveLength(2)
     for (const result of body.results) {
-      expect(result.newStatus).toBe('READY_FOR_INSPECTION')
+      expect(result.newStatus).toBe('OUTSOURCING_REQUESTED')
       expect(result.id).toBeDefined()
-      expect(result.message).toContain('Fertigware für Position')
     }
   })
 })
