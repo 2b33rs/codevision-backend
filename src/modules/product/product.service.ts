@@ -6,7 +6,7 @@ import {
   ShirtSize,
   StandardProduct,
 } from '../../../generated/prisma'
-import { getInventoryCount } from '../../external/inventory.service'
+import { getInventoryCount } from '../../external/mawi.service'
 
 type IdParam = { id: string }
 type CreateBody = Prisma.StandardProductCreateInput

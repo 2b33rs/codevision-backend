@@ -5,7 +5,7 @@ import { $Enums, Order, Position } from '../../../generated/prisma'
 import {
   createProductionOrder,
   getInventoryCount,
-} from '../../external/inventory.service'
+} from '../../external/mawi.service'
 import POSITION_STATUS = $Enums.POSITION_STATUS
 
 type ShirtSize = $Enums.ShirtSize

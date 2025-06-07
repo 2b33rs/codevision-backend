@@ -5,7 +5,7 @@ import {
   createPosition,
   updatePositionStatusByBusinessKey,
 } from './position.service'
-import { requestFinishedGoods } from '../../external/inventory.service'
+import { requestFinishedGoods } from '../../external/mawi.service'
 
 import {
   positionCreateSchema,
