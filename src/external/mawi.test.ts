@@ -35,14 +35,13 @@ describe('getInventoryCount', () => {
     })
   })
 
-  // for local debugging external API
+  // // for local debugging external API
   // it('should call external API and return result when VITEST !== true', async () => {
-
-  // process.env.VITEST = 'false'
-
-  // const result = await getInventoryCount(input)
-
-  // console.log(result)
-  // expect(result).toHaveProperty('anzahl')
+  //   process.env.VITEST = 'false'
+  //
+  //   const result = await getInventoryCount(input)
+  //
+  //   console.log(result)
+  //   expect(result).toHaveProperty('anzahl')
   // })
 })
