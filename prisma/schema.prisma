@@ -44,12 +44,12 @@ model Order {
 }
 
 model Position {
-  id                String          @id @unique @default(uuid())
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  id                String            @id @unique @default(uuid())
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
   deletedAt         DateTime?
   //
-  order             Order           @relation(fields: [orderId], references: [id])
+  order             Order             @relation(fields: [orderId], references: [id])
   orderId           String
   complaints        Complaint[]
   standardProductId String?
@@ -57,7 +57,7 @@ model Position {
   //
   pos_number        Int
   description       String?
-  Status            POSITION_STATUS @default(IN_PROGRESS)
+  Status            POSITION_STATUS   @default(IN_PROGRESS)
   amount            Int
   name              String
   color             String?
@@ -68,20 +68,21 @@ model Position {
 }
 
 model ProductionOrder {
-  id                          String      @id @default(uuid())
-  createdAt                   DateTime    @default(now())
-  updatedAt                   DateTime    @updatedAt
-  deletedAt                   DateTime?
+  id                     String                  @id @default(uuid())
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  deletedAt              DateTime?
   //
-  position                    Position    @relation(fields: [positionId], references: [id])
-  positionId                  String
-  amount                      Int
-  designUrl                   String
-  orderType                   String
-  dyeingNecessary             Boolean
-  productTemplate             Json       // <-- JSON-Feld für das Template
-  Status                      PRODUCTION_ORDER_STATUS 
-  productionorder_number      Int
+  position               Position                @relation(fields: [positionId], references: [id])
+  positionId             String
+  amount                 Int
+  designUrl              String
+  orderType              String
+  dyeingNecessary        Boolean
+  materialId             Int
+  productTemplate        Json // <-- JSON-Feld für das Template
+  Status                 PRODUCTION_ORDER_STATUS
+  productionorder_number Int
 }
 
 model StandardProduct {

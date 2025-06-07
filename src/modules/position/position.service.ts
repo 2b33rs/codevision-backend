@@ -1,5 +1,9 @@
-import { $Enums } from '../../../generated/prisma'
+import { $Enums, Position } from '../../../generated/prisma'
 import { prisma } from '../../plugins/prisma'
+import { FastifyReply, FastifyRequest } from 'fastify'
+import { requestFinishedGoodsSchema } from './position.schema'
+import { requestFinishedGoods } from '../../external/mawi.service'
+import { getProductionOrdersByPositionId } from '../production-order/production-order.service'
 import POSITION_STATUS = $Enums.POSITION_STATUS
 import ShirtSize = $Enums.ShirtSize
 
@@ -49,7 +53,7 @@ export async function createPosition(
   amount: number,
   pos_number: number,
   name: string,
-  productCategory: string, // ✅ Parameter umbenennen
+  productCategory: string,
   design: string,
   color: string,
   shirtSize: ShirtSize,
@@ -63,7 +67,7 @@ export async function createPosition(
       description,
       amount,
       name,
-      productCategory, // ✅ Feldname korrigiert
+      productCategory,
       design,
       color,
       shirtSize,
@@ -71,4 +75,66 @@ export async function createPosition(
       standardProductId,
     },
   })
+}
+
+export async function requestFinishedGoodsHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const { orderNumber, positions } =
+    requestFinishedGoodsSchema.shape.body.parse(request.body)
+  const results: Array<{
+    id: string
+    message: string
+    newStatus: POSITION_STATUS
+  }> = []
+
+  for (const pos of positions) {
+    try {
+      // Position laden
+      const position = await getPositionById(pos.id)
+      if (!position) {
+        console.error(
+          'keine Position in der Datenbank gefunden zur pos ID: ' + pos.id,
+        )
+        continue
+      }
+
+      // Fertigungsaufträge für diese Position laden
+      const productionOrders = await getProductionOrdersByPositionId(pos.id)
+
+      if (productionOrders.length === 0) {
+        console.error(
+          'Die Position hat keine Fertigungsauftrag war nur ein lagerauftrag und ist demnach schon ausgelagert.. ' +
+            pos.id,
+        )
+        continue
+      }
+
+      // Für jeden Fertigungsauftrag die Fertigware anfordern
+      for (const order of productionOrders) {
+        const businessKey = `${orderNumber}.${position.pos_number}`
+
+        const res = await requestFinishedGoods(
+          order.materialId,
+          order.amount,
+          businessKey,
+        )
+
+        results.push({
+          id: pos.id,
+          message: res.status,
+          newStatus: 'OUTSOURCING_REQUESTED',
+        })
+      }
+    } catch (error) {
+      console.error(`Fehler bei Position ${pos.id}:`, error)
+    }
+  }
+
+  reply.send({ orderNumber, results })
+}
+
+export async function getPositionById(id: string): Promise<Position | null> {
+  return prisma.position.findFirst({ where: { id: id } })
 }

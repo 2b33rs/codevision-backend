@@ -1,11 +1,11 @@
 import { prisma } from '../../plugins/prisma'
 import { randomUUID } from 'crypto'
 import { createPosition } from '../position/position.service'
-import { $Enums, Order, Position } from '../../../generated/prisma'
+import { $Enums } from '../../../generated/prisma'
 import {
   createProductionOrder,
   getInventoryCount,
-} from '../../external/inventory.service'
+} from '../../external/mawi.service'
 import POSITION_STATUS = $Enums.POSITION_STATUS
 
 type ShirtSize = $Enums.ShirtSize
@@ -76,12 +76,15 @@ export async function createOrder(
 
     await Promise.all(
       createdPositions.map(async (pos) => {
-        const currentStock = await getInventoryCount({
+        const inventoryCountResponse = await getInventoryCount({
           color: pos.color,
-          shirtSize: pos.shirtSize as ShirtSize,
           design: pos.design,
+          shirtSize: pos.shirtSize ?? 'L',
+          typ: pos.typ?.[0],
+          category: pos.productCategory,
         })
 
+        const currentStock = inventoryCountResponse.anzahl
         const needed = pos.amount
         const toProduce = Math.max(0, needed - currentStock)
         console.log(
@@ -143,10 +146,9 @@ export const getOrdersByCustomer = (customerId: string) =>
 
 export const getAllOrders = async () => {
   try {
-    let newVar = await prisma.order.findMany({
+    return await prisma.order.findMany({
       include: { positions: true, customer: true },
     })
-    return newVar
   } catch (err) {
     console.error('❌ Fehler beim Laden der Orders:', err)
     throw err
