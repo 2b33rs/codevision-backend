@@ -3,15 +3,15 @@ import { zodToJsonSchema } from 'zod-to-json-schema'
 
 import {
   createPosition,
+  requestFinishedGoodsHandler,
   updatePositionStatusByBusinessKey,
 } from './position.service'
-import { requestFinishedGoods } from '../../external/mawi.service'
 
 import {
   positionCreateSchema,
+  positionResponseSchema,
   positionStatusPatchSchema,
   requestFinishedGoodsSchema,
-  positionResponseSchema,
 } from './position.schema'
 
 export default async function positionRoutes(fastify: FastifyInstance) {
@@ -97,22 +97,6 @@ export default async function positionRoutes(fastify: FastifyInstance) {
         },
       },
     },
-    handler: async (request, reply) => {
-      const { orderNumber, positions } =
-        requestFinishedGoodsSchema.shape.body.parse(request.body)
-      const results: Array<{ id: string; message: string; newStatus: string }> =
-        []
-
-      for (const pos of positions) {
-        const res = await requestFinishedGoods(pos.id)
-        results.push({
-          id: pos.id,
-          message: res.message,
-          newStatus: res.newStatus,
-        })
-      }
-
-      reply.send({ orderNumber, results })
-    },
+    handler: requestFinishedGoodsHandler,
   })
 }

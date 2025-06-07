@@ -36,11 +36,15 @@ export async function read(
 
   if (!product) return res.code(404).send()
 
-  const currentStock = await getInventoryCount({
+  const inventoryCountResponse = await getInventoryCount({
+    design: null,
+    category: product.productCategory,
+    typ: product.typ?.[0],
     color: product.color,
     shirtSize: product.shirtSize as ShirtSize,
   })
 
+  const currentStock = inventoryCountResponse.anzahl
   res.send({
     ...product,
     currentStock,
@@ -93,11 +97,14 @@ export async function list(
 
   const enriched = await Promise.all(
     products.map(async (product: any) => {
-      const currentStock = await getInventoryCount({
+      const inventoryCountResponse = await getInventoryCount({
+        design: null,
+        category: product.productCategory,
+        typ: product.typ?.[0],
         color: product.color,
-        shirtSize: product.shirtSize,
+        shirtSize: product.shirtSize as ShirtSize,
       })
-
+      const currentStock = inventoryCountResponse.anzahl
       const restbestand =
         currentStock + product.amountInProduction - product.minAmount
 

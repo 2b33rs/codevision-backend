@@ -6,6 +6,8 @@ import { parseCMYKForMawi } from '../utils/color.util'
 import {
   GetInventoryCountInput,
   GetInventoryCountResponse,
+  RequestFinishedGoodsInput,
+  RequestFinishedGoodsResponse,
 } from './mawi.schema'
 
 export async function getInventoryCount(
@@ -88,6 +90,41 @@ export async function getInventoryCount(
   }
 }
 
+export async function requestFinishedGoods(
+  material_ID: number,
+  anzahl: number,
+  businessKey: string,
+): Promise<RequestFinishedGoodsResponse> {
+  if (process.env.VITEST === 'true') {
+    console.log('Returning mocked finished goods request (VITEST === true)')
+    return {
+      status: `Fertigware für wurde erfolgreich angefordert.`,
+    }
+  }
+
+  const body: RequestFinishedGoodsInput = {
+    material_ID: material_ID,
+    anzahl: anzahl,
+    bestellposition: businessKey,
+  }
+
+  try {
+    const response = await axios.post(
+      `${process.env.MAWI_API_URL}/api/versandverkauf/auslagerung`,
+      [body],
+      { headers: { 'Content-Type': 'application/json' } },
+    )
+
+    return {
+      status: `Fertigware für  wurde erfolgreich angefordert.`,
+    }
+  } catch (error) {
+    console.error('Finished goods API error:', error)
+    throw new Error('Finished goods API request failed')
+  }
+}
+
+// TODO: remove
 export const createProductionOrderZ = z.object({
   positionId: z.string().uuid(),
   amount: z.number().int().positive(),
@@ -98,7 +135,6 @@ export const createProductionOrderZ = z.object({
 
 export type CreateProductionOrderInput = z.infer<typeof createProductionOrderZ>
 
-// TODO: remove
 export async function createProductionOrder(input: unknown) {
   const parsed = createProductionOrderZ.parse(input)
 
@@ -120,27 +156,5 @@ export async function createProductionOrder(input: unknown) {
     status: 'ok' as const,
     message: `Produktionsauftrag über ${parsed.amount} Stück ausgelöst`,
     ...parsed,
-  }
-}
-
-export async function requestFinishedGoods(positionId: string) {
-  const position = await prisma.position.findUnique({
-    where: { id: positionId },
-  })
-
-  if (!position) {
-    throw new Error(`Position mit ID ${positionId} nicht gefunden.`)
-  }
-
-  const updated = await prisma.position.update({
-    where: { id: positionId },
-    data: {
-      Status: 'READY_FOR_INSPECTION',
-    },
-  })
-
-  return {
-    message: `Fertigware für Position ${positionId} wurde erfolgreich angefordert.`,
-    newStatus: updated.Status,
   }
 }

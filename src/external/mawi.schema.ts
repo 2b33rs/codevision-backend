@@ -24,3 +24,15 @@ export type GetInventoryCountResponse = {
   typ: string
   anzahl: number
 }
+
+export const requestFinishedGoodsZ = z.object({
+  material_ID: z.number(),
+  anzahl: z.number(),
+  bestellposition: z.string(),
+})
+
+export type RequestFinishedGoodsInput = z.infer<typeof requestFinishedGoodsZ>
+
+export type RequestFinishedGoodsResponse = {
+  status: string
+}

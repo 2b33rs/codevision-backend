@@ -93,6 +93,7 @@ CREATE TABLE "ProductionOrder" (
     "orderType" TEXT NOT NULL,
     "dyeingNecessary" BOOLEAN NOT NULL,
     "productTemplate" JSONB NOT NULL,
+    "materialId" INTEGER NOT NULL,
     "Status" "PRODUCTION_ORDER_STATUS" NOT NULL,
     "productionorder_number" INTEGER NOT NULL,
 
