@@ -1,9 +1,12 @@
+import 'dotenv/config'
 import { faker } from '@faker-js/faker'
 import { Prisma, $Enums, ComplaintKind, ComplaintReason } from '../generated/prisma'
 import type { StandardProduct } from '../generated/prisma'
 import { prisma } from '../src/plugins/prisma'
 import POSITION_STATUS = $Enums.POSITION_STATUS
 import ShirtSize = $Enums.ShirtSize
+import CustomerType = $Enums.CustomerType
+import addr_Land = $Enums.addr_Land
 
 async function main() {
   const sizes = Object.values(ShirtSize)
@@ -128,8 +131,7 @@ async function main() {
   await prisma.$disconnect()
 }
 
-main().catch(async (e) => {
-  console.error(e)
-  await prisma.$disconnect()
+main().catch((e) => {
+  console.error('Seed failed:', e)
   process.exit(1)
 })
