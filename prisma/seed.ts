@@ -85,7 +85,7 @@ async function main() {
         const hasComplaint = faker.datatype.boolean()
 
         if (hasComplaint) {
-          await prisma.position.create({
+          const position = await prisma.position.create({
             data: {
               orderId: order.id,
               pos_number: k + 1,
@@ -93,7 +93,6 @@ async function main() {
               description: '',
               amount: faker.number.int({ min: 1, max: 10 }),
               design: `https://picsum.photos/id/${faker.number.int({ min: 1, max: 100 })}/200/300`,
-
               color: `cmyk(${Array.from({ length: 4 })
                 .map(() => `${faker.number.int({ min: 0, max: 100 })}%`)
                 .join(',')})`,
@@ -111,8 +110,46 @@ async function main() {
               },
             },
           })
+
+          
+
+          // === ProductionOrder für diese Position anlegen ===
+          const productTemplate = {
+            kategorie: 'T-Shirt',
+            artikelnummer: faker.number.int({ min: 100, max: 3000 }), 
+            groesse: position.shirtSize ?? faker.helpers.arrayElement(sizes),
+            farbcode: {
+              c: faker.number.int({ min: 0, max: 100 }),
+              m: faker.number.int({ min: 0, max: 100 }),
+              y: faker.number.int({ min: 0, max: 100 }),
+              k: faker.number.int({ min: 0, max: 100 }),
+            },
+            typ: faker.helpers.arrayElement(allTypen),
+          }
+          
+          const prodOrderCount = faker.number.int({ min: 1, max: 3 }); // z.B. 1-3 ProductionOrders pro Position
+          for (let n = 0; n < prodOrderCount; n++) {
+            const currentProdOrderCount = await prisma.productionOrder.count({
+              where: { positionId: position.id },
+            });
+            const nextProdOrderNumber = currentProdOrderCount + 1;
+
+            await prisma.productionOrder.create({
+              data: {
+                positionId: position.id,
+                amount: faker.number.int({ min: 1, max: 10 }),
+                designUrl: position.design,
+                orderType: faker.helpers.arrayElement(['STANDARD', 'COMPLAINT']),
+                dyeingNecessary: faker.datatype.boolean(),
+                materialId: productTemplate.artikelnummer, 
+                productTemplate,
+                Status: 'ORDER_RECEIVED',
+                productionorder_number: nextProdOrderNumber,
+              },
+            })
+          }
         } else {
-          await prisma.position.create({
+          const position = await prisma.position.create({
             data: {
               orderId: order.id,
               pos_number: k + 1,
@@ -131,6 +168,42 @@ async function main() {
               standardProductId: maybeStandardProduct?.id ?? null,
             },
           })
+
+          // === ProductionOrder für diese Position anlegen ===
+          const productTemplate = {
+            kategorie: 'T-Shirt',
+            artikelnummer: faker.number.int({ min: 100, max: 3000 }), 
+            groesse: position.shirtSize ?? faker.helpers.arrayElement(sizes),
+            farbcode: {
+              c: faker.number.int({ min: 0, max: 100 }),
+              m: faker.number.int({ min: 0, max: 100 }),
+              y: faker.number.int({ min: 0, max: 100 }),
+              k: faker.number.int({ min: 0, max: 100 }),
+            },
+            typ: faker.helpers.arrayElement(allTypen),
+          }
+
+          const prodOrderCount = faker.number.int({ min: 1, max: 3 }); // z.B. 1-3 ProductionOrders pro Position
+          for (let n = 0; n < prodOrderCount; n++) {
+            const currentProdOrderCount = await prisma.productionOrder.count({
+              where: { positionId: position.id },
+            })
+            const nextProdOrderNumber = currentProdOrderCount + 1
+
+            await prisma.productionOrder.create({
+              data: {
+                positionId: position.id,
+                amount: faker.number.int({ min: 1, max: 10 }),
+                designUrl: position.design,
+                orderType: faker.helpers.arrayElement(['STANDARD', 'COMPLAINT']),
+                dyeingNecessary: faker.datatype.boolean(),
+                materialId: productTemplate.artikelnummer,
+                productTemplate,
+                Status: 'ORDER_RECEIVED',
+                productionorder_number: nextProdOrderNumber,
+              },
+            })
+          }
         }
       }
     }
