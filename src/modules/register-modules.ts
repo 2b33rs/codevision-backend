@@ -13,7 +13,7 @@ export async function registerModules(app: FastifyInstance) {
     { prefix: '/product', plugin: productRoutes },
     { prefix: '/order', plugin: orderRoutes },
     { prefix: '/complaints', plugin: complaintRoutes },
-    { prefix: '/production-order', plugin: productionOrderRoutes },
+    { prefix: '/production', plugin: productionOrderRoutes },
   ]) {
     app.register(plugin, { prefix })
   }

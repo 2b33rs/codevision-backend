@@ -5,6 +5,8 @@ import {
 import { prisma } from '../../plugins/prisma'
 import { createProductionOrderZ } from './production-order.schema'
 import { $Enums } from '../../../generated/prisma'
+import { getInventoryCount } from '../../external/mawi.service'
+import { cmykObjectToString } from '../../utils/color.util' // Import ergänzen
 
 const PRODUCTION_API_URL = process.env.PRODUCTION_API_URL as string
 
@@ -36,16 +38,41 @@ export async function updateProductionOrderStatus(
   })
 }
 
-
-
 export async function createProductionOrder(input: unknown) {
+  // Input validieren und parsen
   const parsed = createProductionOrderZ.parse(input)
 
+  if (!parsed.positionId) {
+    throw new Error('positionId darf nicht undefined sein.');
+  }
+
+  // 1. Material-ID von MaWi holen
+  const colorString = cmykObjectToString(parsed.productTemplate.farbcode)
+  const inventory = await getInventoryCount({
+    category: parsed.productTemplate.kategorie,
+    typ: parsed.productTemplate.typ,
+    shirtSize: parsed.productTemplate.groesse,
+    color: colorString, // <-- jetzt im richtigen Format!
+    design: parsed.designUrl, 
+  })
+  console.log('Material-ID von MaWi:', inventory.material_ID)
+  if (!inventory.material_ID) {
+    throw new Error('Material-ID konnte nicht von MaWi ermittelt werden.')
+  }
+
+  // 2. Produktionsauftrag anlegen, jetzt mit materialId
   const currentCount = await prisma.productionOrder.count({
     where: { positionId: parsed.positionId },
   })
   const nextNumber = currentCount + 1
 
+  // materialId als artikelnummer ins productTemplate übernehmen
+  const productTemplateWithArtikelnummer = {
+    ...parsed.productTemplate,
+    artikelnummer: inventory.material_ID,
+  }
+
+  // ProductionOrder in der DB anlegen
   const productionOrder = await prisma.productionOrder.create({
     data: {
       positionId: parsed.positionId,
@@ -53,12 +80,21 @@ export async function createProductionOrder(input: unknown) {
       designUrl: parsed.designUrl,
       orderType: parsed.orderType,
       dyeingNecessary: parsed.dyeingNecessary,
-      materialId: parsed.materialId,
-      productTemplate: parsed.productTemplate,
+      materialId: inventory.material_ID, // <-- jetzt dynamisch!
+      productTemplate: productTemplateWithArtikelnummer, // <-- angepasst!
       Status: parsed.Status ?? $Enums.PRODUCTION_ORDER_STATUS.ORDER_RECEIVED,
       productionorder_number: nextNumber,
     },
   })
+  console.log(productionOrder)
+  // Wenn VITEST auf true steht, Produktions-API-Aufruf überspringen
+  if (process.env.VITEST === 'true') {
+    return {
+      status: 'ok',
+      message: `Produktionsauftrag #${productionOrder.productionorder_number} über ${parsed.amount} Stück ausgelöst`,
+      productionOrder,
+    }
+  }
 
   const position = await prisma.position.findUnique({
     where: { id: productionOrder.positionId },

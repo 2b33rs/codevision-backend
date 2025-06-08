@@ -35,3 +35,7 @@ export function parseCMYKForMawi(color: string | null): {
 
   return { cyan, magenta, yellow, black }
 }
+
+export function cmykObjectToString(farbcode: { cyan: number, magenta: number, yellow: number, black: number }) {
+  return `cmyk(${farbcode.cyan}%,${farbcode.magenta}%,${farbcode.yellow}%,${farbcode.black}%)`
+}
