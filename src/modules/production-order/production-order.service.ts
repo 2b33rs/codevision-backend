@@ -107,7 +107,8 @@ export async function createProductionOrder(input: unknown) {
 
   const rawOrderId = position.order.orderNumber.toString()
   const rawPosNumber = position.pos_number.toString()
-  const orderIdPositionsId = `${rawOrderId}.${rawPosNumber}`
+  const rawProductionorderNumber = productionOrder.productionorder_number.toString()
+  const orderIdPositionsId = `${rawOrderId}.${rawPosNumber}.${rawProductionorderNumber}`
 
   const tpl = productionOrder.productTemplate as {
     kategorie: string
@@ -133,7 +134,9 @@ export async function createProductionOrder(input: unknown) {
       },
     },
   ]
+  console.log('Request Body für Produktions-API:', requestBody)
 
+  
   const response = await fetch(
     `${PRODUCTION_API_URL}/fertigungsauftraege/fertigungsauftraegeAnlegen`,
     {
