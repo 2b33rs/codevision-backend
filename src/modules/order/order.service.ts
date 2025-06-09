@@ -65,6 +65,7 @@ export async function createOrder(
         return createPosition(
           order.id,
           p.amount,
+          p.price,
           p.pos_number,
           p.name,
           p.productCategory,

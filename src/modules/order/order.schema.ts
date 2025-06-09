@@ -49,8 +49,9 @@ export const orderBaseZ = z.object({
   updatedAt: z.string().datetime().optional(),
   deletedAt: z.string().datetime().nullable().optional(),
   orderNumber: z.string().optional(),
+  
+  productionOrders: z.array(productionOrderResponseSchema).default([]),
 
-  positions: z.array(positionZ),
 })
 
 /* Eingaben */
@@ -70,6 +71,7 @@ export const createOrderZ = orderBaseZ
         createdAt: true,
         updatedAt: true,
         orderId: true,
+        productionOrders: true,
       }),
     ),
   })
@@ -80,11 +82,16 @@ export const listOrdersQueryZ = z.object({
   customerId: z.string().uuid().optional(),
 })
 
-/* ───────── JSON-Schema (für Fastify/Ajv/Swagger) ───────── */
+/* Response-Schema */
+export const positionResponseZ = positionZ.omit({ productionOrders: true })
+export const orderResponseZ = orderBaseZ.extend({
+  positions: z.array(positionResponseZ),
+})
 
+/* ───────── JSON-Schema (für Fastify/Ajv/Swagger) ───────── */
 export const schemas = {
   bodyCreate: zodToJsonSchema(createOrderZ),
   queryList: zodToJsonSchema(listOrdersQueryZ),
-  orderResponse: zodToJsonSchema(orderBaseZ),
-  ordersResponse: zodToJsonSchema(z.array(orderBaseZ)),
+  orderResponse: zodToJsonSchema(orderResponseZ),
+  ordersResponse: zodToJsonSchema(z.array(orderResponseZ)),
 }
