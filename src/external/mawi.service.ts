@@ -134,6 +134,7 @@ export const createProductionOrderZ = z.object({
 })
 
 export type CreateProductionOrderInput = z.infer<typeof createProductionOrderZ>
+
 export async function createProductionOrder(input: unknown) {
   const parsed = createProductionOrderZ.parse(input)
 
@@ -147,11 +148,11 @@ export async function createProductionOrder(input: unknown) {
       position: { connect: { id: parsed.positionId } },
       amount: parsed.amount,
       designUrl: 'https://placeholder.design.url', // ⬅ ggf. dynamisch ersetzen
-      orderType: 'STANDARD',                      // ⬅ Beispielwert, ggf. sinnvoll ersetzen
-      dyeingNecessary: true,                      // ⬅ Beispielwert
-      materialId: 0,                               // ⬅ ggf. aus getInventoryCount extrahieren
-      productTemplate: {},                         // ⬅ oder generieren
-      Status: 'ORDER_RECEIVED',                    // ⬅ Standard-Startstatus
+      orderType: 'STANDARD', // ⬅ Beispielwert, ggf. sinnvoll ersetzen
+      dyeingNecessary: true, // ⬅ Beispielwert
+      materialId: 0, // ⬅ ggf. aus getInventoryCount extrahieren
+      productTemplate: {}, // ⬅ oder generieren
+      Status: 'ORDER_RECEIVED', // ⬅ Standard-Startstatus
       productionorder_number: Math.floor(Math.random() * 1000000), // ⬅ Beispiel
     },
   })
@@ -162,4 +163,3 @@ export async function createProductionOrder(input: unknown) {
     productionOrderId: newProductionOrder.id,
   }
 }
-

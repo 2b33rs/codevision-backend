@@ -2,13 +2,16 @@ import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 import { $Enums } from '../../../generated/prisma'
 import { customerZ } from '../customer/customer.schema'
+import { productionOrderResponseSchema } from '../production-order/production-order.schema'
 
 type ShirtSize = $Enums.ShirtSize
 /* ───────── Zod-Schemas (für Typing & Runtime-Validation) ───────── */
 
 export const positionZ = z.object({
   amount: z.number().int().positive(),
-  price: z.string().regex(/^\d+(\.\d{1,2})?$/, { message: 'Invalid price format' }),
+  price: z
+    .string()
+    .regex(/^\d+(\.\d{1,2})?$/, { message: 'Invalid price format' }),
   pos_number: z.number().int().positive(),
   name: z.string(),
   productCategory: z.string(),
@@ -33,6 +36,8 @@ export const positionZ = z.object({
   createdAt: z.string().datetime().optional(),
   updatedAt: z.string().datetime().optional(),
   orderId: z.string().uuid().optional(),
+
+  productionOrders: z.array(productionOrderResponseSchema),
 })
 
 export const orderBaseZ = z.object({
