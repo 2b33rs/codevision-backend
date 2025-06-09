@@ -11,3 +11,6 @@ deploy:
 	npm run prisma
 	npm run postbuild
 	npm run release --if-present
+
+test:
+	npx vitest run

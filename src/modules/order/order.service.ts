@@ -12,6 +12,7 @@ type ShirtSize = $Enums.ShirtSize
 
 export interface PositionInput {
   amount: number
+  price: string
   pos_number: number
   name: string
   productCategory: string
@@ -41,7 +42,9 @@ export async function createOrder(
       },
     })
 
-    const orderNumber = `${year}${(countThisYear + 1).toString().padStart(4, '0')}`
+    const orderNumber = `${year}${(countThisYear + 1)
+      .toString()
+      .padStart(4, '0')}`
     console.log('📦 Neue Ordernummer:', orderNumber)
 
     const order = await prisma.order.create({
@@ -53,15 +56,13 @@ export async function createOrder(
       },
     })
 
+    // Create positions
     const createdPositions = await Promise.all(
-      positions.map((p) => {
-        console.log(
-          `📌 Position ${p.pos_number} mit Standardprodukt:`,
-          p.standardProductId,
-        )
-        return createPosition(
+      positions.map((p) =>
+        createPosition(
           order.id,
           p.amount,
+          p.price,
           p.pos_number,
           p.name,
           p.productCategory,
@@ -70,62 +71,65 @@ export async function createOrder(
           p.shirtSize,
           p.description,
           p.standardProductId,
-        )
-      }),
+        ),
+      ),
     )
 
-    await Promise.all(
-      createdPositions.map(async (pos) => {
-        const inventoryCountResponse = await getInventoryCount({
+    // Create production orders and update standardProduct
+    for (const pos of createdPositions) {
+      const inventoryCountResponse = await getInventoryCount({
+        color: pos.color,
+        design: pos.design,
+        shirtSize: pos.shirtSize ?? 'L',
+        typ: pos.typ?.[0],
+        category: pos.productCategory,
+      })
+
+      const currentStock = inventoryCountResponse.anzahl
+      const needed = pos.amount
+      const toProduce = Math.max(0, needed - currentStock)
+      console.log(
+        `🧮 Position ${pos.id} braucht ${needed}, Lagerbestand: ${currentStock}, zu produzieren: ${toProduce}`,
+      )
+
+      if (toProduce > 0) {
+        console.log(`🏭 Produktionsauftrag für Position-ID ${pos.id}`)
+        await createProductionOrder({
+          positionId: pos.id,
+          amount: toProduce,
           color: pos.color,
+          shirtSize: pos.shirtSize,
           design: pos.design,
-          shirtSize: pos.shirtSize ?? 'L',
-          typ: pos.typ?.[0],
-          category: pos.productCategory,
         })
 
-        const currentStock = inventoryCountResponse.anzahl
-        const needed = pos.amount
-        const toProduce = Math.max(0, needed - currentStock)
-        console.log(
-          `🧮 Position ${pos.id} braucht ${needed}, Lagerbestand: ${currentStock}, zu produzieren: ${toProduce}`,
-        )
-
-        if (toProduce > 0) {
-          console.log(`🏭 Produktionsauftrag für Position-ID ${pos.id}`)
-          await createProductionOrder({
-            productId: pos.id,
-            amount: toProduce,
-            color: pos.color,
-            shirtSize: pos.shirtSize,
-            design: pos.design,
+        if (pos.standardProductId) {
+          console.log(
+            `🔄 Update amountInProduction für StandardProduct ${pos.standardProductId}`,
+          )
+          await prisma.standardProduct.update({
+            where: { id: pos.standardProductId },
+            data: { amountInProduction: { increment: toProduce } },
           })
-
-          if (pos.standardProductId) {
-            console.log(
-              `🔄 Update amountInProduction für StandardProduct ${pos.standardProductId}`,
-            )
-            await prisma.standardProduct.update({
-              where: { id: pos.standardProductId },
-              data: {
-                amountInProduction: {
-                  increment: toProduce,
-                },
-              },
-            })
-          }
         }
-      }),
-    )
+      }
+    }
 
     console.log('✅ Auftrag erfolgreich erstellt:', order.id)
 
-    return {
-      id: order.id,
-      customerId,
-      orderNumber: order.orderNumber,
-      positions: createdPositions,
-    }
+    // Return order with positions and productionOrders
+    const result = await prisma.order.findUniqueOrThrow({
+      where: { id: order.id },
+      include: {
+        positions: {
+          include: {
+            productionOrders: true,
+          },
+        },
+        customer: true,
+      },
+    })
+
+    return result
   } catch (err) {
     console.error('❌ Fehler in createOrder:', err)
     throw err
@@ -135,19 +139,19 @@ export async function createOrder(
 export const getOrderById = (id: string) =>
   prisma.order.findUnique({
     where: { id },
-    include: { positions: true, customer: true },
+    include: { positions: { include: { productionOrders: true } }, customer: true },
   })
 
 export const getOrdersByCustomer = (customerId: string) =>
   prisma.order.findMany({
     where: { customerId },
-    include: { positions: true, customer: true },
+    include: { positions: { include: { productionOrders: true } }, customer: true },
   })
 
 export const getAllOrders = async () => {
   try {
     return await prisma.order.findMany({
-      include: { positions: true, customer: true },
+      include: { positions: { include: { productionOrders: true } }, customer: true },
     })
   } catch (err) {
     console.error('❌ Fehler beim Laden der Orders:', err)
@@ -159,16 +163,9 @@ export async function getOrdersWithPositionStatus(status: POSITION_STATUS) {
   try {
     return await prisma.order.findMany({
       where: {
-        positions: {
-          some: {
-            Status: status,
-          },
-        },
+        positions: { some: { Status: status } },
       },
-      include: {
-        positions: true,
-        customer: true,
-      },
+      include: { positions: { include: { productionOrders: true } }, customer: true },
     })
   } catch (err) {
     console.error('❌ Fehler beim Abrufen der Orders mit Position-Status:', err)

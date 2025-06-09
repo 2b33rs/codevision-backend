@@ -18,6 +18,7 @@ describe('Order Service Unit Tests (mit Positionen)', () => {
     const positions: PositionInput[] = [
       {
         amount: 3,
+        price: '19.90',                       
         pos_number: 1,
         name: 'Gold-Shirt',
         productCategory: 'T_SHIRT',
@@ -28,6 +29,7 @@ describe('Order Service Unit Tests (mit Positionen)', () => {
       },
       {
         amount: 2,
+        price: '14.00',
         pos_number: 2,
         name: 'Blau-Shirt',
         productCategory: 'T_SHIRT',
@@ -54,6 +56,7 @@ describe('Order Service Unit Tests (mit Positionen)', () => {
     const positions: PositionInput[] = [
       {
         amount: 1,
+        price: '12.50',
         pos_number: 1,
         name: 'Grün-Shirt',
         productCategory: 'T_SHIRT',
@@ -73,6 +76,7 @@ describe('Order Service Unit Tests (mit Positionen)', () => {
     const positions: PositionInput[] = [
       {
         amount: 1,
+        price: '9.99',
         pos_number: 1,
         name: 'A1',
         productCategory: 'T_SHIRT',
@@ -102,6 +106,7 @@ describe('Order Service Unit Tests (mit Positionen)', () => {
     const positions: PositionInput[] = [
       {
         amount: 1,
+        price: '5.00',
         pos_number: 1,
         name: 'X1',
         productCategory: 'T_SHIRT',
@@ -126,6 +131,7 @@ describe('Order Routes', () => {
     const positions: PositionInput[] = [
       {
         amount: 2,
+        price: '11.11',
         pos_number: 1,
         name: 'R1',
         productCategory: 'T_SHIRT',
@@ -152,17 +158,6 @@ describe('Order Routes', () => {
       phone: '2222',
       customerType: 'BUSINESS',
     })
-    const positions: PositionInput[] = [
-      {
-        amount: 1,
-        pos_number: 1,
-        name: 'R2',
-        productCategory: 'T_SHIRT',
-        design: 'DR2',
-        color: 'cmyk(5%,5%,5%,5%)',
-        shirtSize: 'S',
-      },
-    ]
     const order = await makeOrder(customer.id)
     await makePosition(order.id)
     const res = await app.inject({

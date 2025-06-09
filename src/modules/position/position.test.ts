@@ -25,6 +25,7 @@ describe('Position Service Unit Tests', () => {
     const pos = await createPosition(
       order.id,
       7,
+      '9.99',              // new price parameter as string
       1,
       'Super T-Shirt',
       'T_SHIRT',
@@ -36,6 +37,7 @@ describe('Position Service Unit Tests', () => {
 
     expect(pos).toHaveProperty('id')
     expect(pos.amount).toBe(7)
+    expect(pos.price.toString()).toBe('9.99')           // assert price
     expect(pos.name).toBe('Super T-Shirt')
     expect(pos.design).toBe('DesignCool')
     expect(pos.color).toBe('cmyk(10%,20%,30%,40%)')
@@ -86,6 +88,22 @@ describe('Position Service Unit Tests', () => {
 
     expect(productAfter.amountInProduction).toBe(2)
   })
+
+  it('should update the status of a production order by composite key', async () => {
+    const customer = await makeCustomer()
+    const order = await makeOrder(customer.id)
+    const pos = await makePosition(order.id, { pos_number: 3 })
+    const prodOrder = await makeProductionOrder(pos.id)
+
+    const compositeId = `${order.orderNumber}.${pos.pos_number}.${prodOrder.id}`
+
+    const updatedOrder = await updatePositionStatusByBusinessKey(
+      compositeId,
+      'COMPLETED',
+    )
+
+    expect(updatedOrder.Status).toBe('COMPLETED')
+  })
 })
 
 describe('Position Routes', () => {
@@ -97,6 +115,7 @@ describe('Position Routes', () => {
     const payload = {
       orderId: order.id,
       amount: 4,
+      price: '12.50',             // include new price field
       pos_number: 1,
       name: 'Test Shirt',
       productCategory: 'T_SHIRT' as ProductCategory,
@@ -118,6 +137,7 @@ describe('Position Routes', () => {
     expect(body).toMatchObject({
       orderId: order.id,
       amount: 4,
+      price: '12.5',             // assert price in response
       pos_number: 1,
       name: 'Test Shirt',
       productCategory: 'T_SHIRT',
@@ -150,6 +170,30 @@ describe('Position Routes', () => {
       where: { id: pos.id },
     })
     expect(updatedPos.Status).toBe('COMPLETED')
+  })
+
+  it('PATCH /position/:compositeId – update production order status', async () => {
+    // Seed Customer + Order + Position + ProductionOrder
+    const customer = await makeCustomer()
+    const order = await makeOrder(customer.id)
+    const pos = await makePosition(order.id, { pos_number: 6 })
+    const prodOrder = await makeProductionOrder(pos.id)
+
+    const compositeId = `${order.orderNumber}.${pos.pos_number}.${prodOrder.id}`
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/position/${compositeId}`,
+      payload: { status: 'COMPLETED' as POSITION_STATUS },
+    })
+
+    expect(res.statusCode).toBe(200)
+    expect(res.body).toBe(`Updated position status successfully to COMPLETED`)
+
+    const updated = await prisma.productionOrder.findUniqueOrThrow({
+      where: { id: prodOrder.id },
+    })
+    expect(updated.Status).toBe('COMPLETED')
   })
 
   it('POST /position/request-finished-goods – batch request', async () => {

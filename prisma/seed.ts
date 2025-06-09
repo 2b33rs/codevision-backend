@@ -1,8 +1,12 @@
+import 'dotenv/config'
 import { faker } from '@faker-js/faker'
-import { $Enums, ComplaintKind, ComplaintReason } from '../generated/prisma'
+import { Prisma, $Enums, ComplaintKind, ComplaintReason } from '../generated/prisma'
+import type { StandardProduct } from '../generated/prisma'
 import { prisma } from '../src/plugins/prisma'
 import POSITION_STATUS = $Enums.POSITION_STATUS
 import ShirtSize = $Enums.ShirtSize
+import CustomerType = $Enums.CustomerType
+import addr_Land = $Enums.addr_Land
 
 async function main() {
   const sizes = Object.values(ShirtSize)
@@ -10,20 +14,13 @@ async function main() {
   const reasons = Object.values(ComplaintReason)
   const kinds = Object.values(ComplaintKind)
 
-  // Aktuelles Jahr als vierstellig (z.B. "2024")
   const yearPrefix = new Date().getFullYear().toString()
   let orderSequence = 1
 
   // === 1. Erzeuge Standardprodukte ===
-  const standardProducts = []
-  const allTypen = [
-    'Sport',
-    'Rundhals',
-    'Oversize',
-    'Top',
-    'V-Ausschnitt',
-    'Bedruckt',
-  ]
+  const standardProducts: StandardProduct[] = []
+  const allTypen = ['Sport', 'Rundhals', 'Oversize', 'Top', 'V-Ausschnitt', 'Bedruckt']
+
   for (let i = 0; i < 5; i++) {
     const product = await prisma.standardProduct.create({
       data: {
@@ -41,13 +38,11 @@ async function main() {
     standardProducts.push(product)
   }
 
-  // Hole die erzeugten Standardprodukte inkl. IDs
   const allStandardProducts = await prisma.standardProduct.findMany()
 
   // === 2. Erzeuge Kunden, Orders, Positionen ===
   for (let i = 0; i < 10; i++) {
     const hasCustomer = faker.number.int({ min: 0, max: 2 }) > 0
-
     const customer = hasCustomer
       ? await prisma.customer.create({
           data: {
@@ -69,11 +64,7 @@ async function main() {
       orderSequence++
 
       const order = await prisma.order.create({
-        data: {
-          customerId: customer?.id ?? null,
-          orderNumber,
-          deletedAt: null,
-        },
+        data: { customerId: customer?.id ?? null, orderNumber, deletedAt: null },
       })
 
       const posCount = faker.number.int({ min: 1, max: 6 })
@@ -81,8 +72,8 @@ async function main() {
         const maybeStandardProduct = faker.helpers.maybe(() =>
           faker.helpers.arrayElement(allStandardProducts),
         )
-
         const hasComplaint = faker.datatype.boolean()
+
 
         if (hasComplaint) {
           const position = await prisma.position.create({
@@ -92,6 +83,7 @@ async function main() {
               name: faker.commerce.productName(),
               description: '',
               amount: faker.number.int({ min: 1, max: 10 }),
+              price: new Prisma.Decimal(faker.commerce.price()),
               design: `https://picsum.photos/id/${faker.number.int({ min: 1, max: 100 })}/200/300`,
               color: `cmyk(${Array.from({ length: 4 })
                 .map(() => `${faker.number.int({ min: 0, max: 100 })}%`)
@@ -156,6 +148,7 @@ async function main() {
               name: faker.commerce.productName(),
               description: '',
               amount: faker.number.int({ min: 1, max: 10 }),
+              price: new Prisma.Decimal(faker.commerce.price()),
               design: `https://picsum.photos/id/${faker.number.int({ min: 1, max: 100 })}/200/300`,
               color: `cmyk(${Array.from({ length: 4 })
                 .map(() => `${faker.number.int({ min: 0, max: 100 })}%`)
@@ -212,8 +205,7 @@ async function main() {
   await prisma.$disconnect()
 }
 
-main().catch(async (e) => {
-  console.error(e)
-  await prisma.$disconnect()
+main().catch((e) => {
+  console.error('Seed failed:', e)
   process.exit(1)
 })
