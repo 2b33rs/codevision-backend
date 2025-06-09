@@ -29,9 +29,9 @@ describe('POST /production/:positionId/production-order', () => {
         designUrl: 'https://example.com/design.svg',
         orderType: 'standard',
         dyeingNecessary: true,
+        materialId: 98765, // <-- Pflichtfeld!
         productTemplate: {
           kategorie: 'T-Shirt',
-          //artikelnummer: 98765,
           groesse: 'L',
           farbcode: {
             cyan: 10,

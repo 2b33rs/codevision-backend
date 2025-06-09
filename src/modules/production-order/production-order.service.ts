@@ -46,22 +46,11 @@ export async function createProductionOrder(input: unknown) {
   if (!parsed.positionId) {
     throw new Error('positionId darf nicht undefined sein.');
   }
-
-  // 1. Material-ID von MaWi holen
-  const colorString = cmykObjectToString(parsed.productTemplate.farbcode)
-  const inventory = await getInventoryCount({
-    category: parsed.productTemplate.kategorie,
-    typ: parsed.productTemplate.typ,
-    shirtSize: parsed.productTemplate.groesse,
-    color: colorString, // <-- jetzt im richtigen Format!
-    design: parsed.designUrl, 
-  })
-  console.log('Material-ID von MaWi:', inventory.material_ID)
-  if (!inventory.material_ID) {
-    throw new Error('Material-ID konnte nicht von MaWi ermittelt werden.')
+  if (!parsed.materialId) {
+    throw new Error('materialId darf nicht undefined sein.');
   }
 
-  // 2. Produktionsauftrag anlegen, jetzt mit materialId
+  // Produktionsauftrag anlegen, jetzt mit materialId
   const currentCount = await prisma.productionOrder.count({
     where: { positionId: parsed.positionId },
   })
@@ -70,7 +59,7 @@ export async function createProductionOrder(input: unknown) {
   // materialId als artikelnummer ins productTemplate übernehmen
   const productTemplateWithArtikelnummer = {
     ...parsed.productTemplate,
-    artikelnummer: inventory.material_ID,
+    artikelnummer: parsed.materialId,
   }
 
   // ProductionOrder in der DB anlegen
@@ -81,8 +70,8 @@ export async function createProductionOrder(input: unknown) {
       designUrl: parsed.designUrl,
       orderType: parsed.orderType,
       dyeingNecessary: parsed.dyeingNecessary,
-      materialId: inventory.material_ID, // <-- jetzt dynamisch!
-      productTemplate: productTemplateWithArtikelnummer, // <-- angepasst!
+      materialId: parsed.materialId,
+      productTemplate: productTemplateWithArtikelnummer,
       Status: parsed.Status ?? $Enums.PRODUCTION_ORDER_STATUS.ORDER_RECEIVED,
       productionorder_number: nextNumber,
     },

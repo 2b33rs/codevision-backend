@@ -22,7 +22,7 @@ export const createProductionOrderZ = z.object({
   designUrl: z.string(),
   orderType: z.string(),
   dyeingNecessary: z.boolean(),
-  materialId: z.number().optional(),
+  materialId: z.number(), // <-- Pflichtfeld!
   productTemplate: productTemplateZ,
   Status: z.nativeEnum($Enums.PRODUCTION_ORDER_STATUS).optional(),
   deletedAt: z.string().datetime().nullable().optional(),
