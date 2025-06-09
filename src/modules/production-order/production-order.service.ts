@@ -7,6 +7,7 @@ import { createProductionOrderZ } from './production-order.schema'
 import { $Enums } from '../../../generated/prisma'
 import { getInventoryCount } from '../../external/mawi.service'
 import { cmykObjectToString } from '../../utils/color.util' // Import ergänzen
+import axios from 'axios'
 
 const PRODUCTION_API_URL = process.env.PRODUCTION_API_URL as string
 
@@ -136,19 +137,26 @@ export async function createProductionOrder(input: unknown) {
   ]
   console.log('Request Body für Produktions-API:', requestBody)
 
-  
-  const response = await fetch(
-    `${PRODUCTION_API_URL}/fertigungsauftraege/fertigungsauftraegeAnlegen`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody),
-    },
-  )
-  if (!response.ok) {
-    const text = await response.text()
+  // Axios statt fetch verwenden
+  try {
+    const response = await axios.post(
+      `${PRODUCTION_API_URL}/fertigungsauftraege/fertigungsauftraegeAnlegen`,
+      requestBody,
+      { headers: { 'Content-Type': 'application/json' } },
+    )
+
+    if (response.status < 200 || response.status >= 300) {
+      throw new Error(
+        `Produktions-API-Fehler: ${response.status} ${response.statusText} - ${JSON.stringify(response.data)}`,
+      )
+    }
+  } catch (error: any) {
+    // Axios Fehlerbehandlung
+    const status = error.response?.status ?? 'unbekannt'
+    const statusText = error.response?.statusText ?? ''
+    const data = error.response?.data ? JSON.stringify(error.response.data) : error.message
     throw new Error(
-      `Produktions-API-Fehler: ${response.status} ${response.statusText} - ${text}`,
+      `Produktions-API-Fehler: ${status} ${statusText} - ${data}`,
     )
   }
 
