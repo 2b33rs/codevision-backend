@@ -34,6 +34,7 @@ export async function createComplaint(input: {
               pos_number: 1,
               name: position.name,
               amount: position.amount,
+              price: position.price,
               productCategory: position.productCategory,
               design: position.design,
               color: position.color,

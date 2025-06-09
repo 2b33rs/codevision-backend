@@ -72,6 +72,7 @@ CREATE TABLE "Position"
     "description"       TEXT,
     "Status"            "POSITION_STATUS" NOT NULL DEFAULT 'IN_PROGRESS',
     "amount"            INTEGER           NOT NULL,
+    "price"             DECIMAL(10,2)     NOT NULL DEFAULT 0.00,
     "name"              TEXT              NOT NULL,
     "color"             TEXT,
     "shirtSize"         "ShirtSize",

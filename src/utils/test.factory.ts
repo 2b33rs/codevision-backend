@@ -29,6 +29,7 @@ export async function makePosition(orderId: string, overrides: any = {}) {
       order: { connect: { id: orderId } },
       pos_number: 1,
       amount: 1,
+      price: '9.99',
       name: `TestPosition-${randomUUID()}`,
       productCategory: 'T_SHIRT',
       design: 'TestDesign',

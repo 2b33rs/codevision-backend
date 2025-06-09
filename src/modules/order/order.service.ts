@@ -14,6 +14,7 @@ type ShirtSize = $Enums.ShirtSize
 
 export interface PositionInput {
   amount: number
+  price: string
   pos_number: number
   name: string
   productCategory: string
@@ -268,12 +269,12 @@ export async function getOrdersWithPositionStatus(status: POSITION_STATUS) {
         },
       },
       include: {
-        positions: true,
+        positions: { include: { productionOrders: true } },
         customer: true,
       },
     })
   } catch (err) {
-    console.error('❌ Fehler beim Abrufen der Orders mit Position-Status:', err)
+    console.error('❌ Fehler in createOrder:', err)
     throw err
   }
 }

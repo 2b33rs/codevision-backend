@@ -1,48 +1,79 @@
-import { $Enums, Position } from '../../../generated/prisma'
+import { Prisma, $Enums, Position } from '../../../generated/prisma'
 import { prisma } from '../../plugins/prisma'
 import { FastifyReply, FastifyRequest } from 'fastify'
 import { requestFinishedGoodsSchema } from './position.schema'
 import { requestFinishedGoods } from '../../external/mawi.service'
-import { getProductionOrdersByPositionId } from '../production-order/production-order.service'
+import {
+  getProductionOrdersByPositionId,
+  updateProductionOrderStatus,
+} from '../production-order/production-order.service'
+
 import POSITION_STATUS = $Enums.POSITION_STATUS
+import PRODUCTION_ORDER_STATUS = $Enums.PRODUCTION_ORDER_STATUS
 import ShirtSize = $Enums.ShirtSize
 
 /**
- * Aktualisiert den Status einer Position über den zusammengesetzten Geschäftsschlüssel.
+ * Aktualisiert den Status einer Position oder eines Fertigungsauftrags über den zusammengesetzten Geschäftsschlüssel.
+ *
+ * - Für Positionen: "orderNumber.pos_number"
+ * - Für Fertigungsaufträge: "orderNumber.pos_number.productionOrderId"
  */
 export async function updatePositionStatusByBusinessKey(
   compositeId: string,
-  status: POSITION_STATUS,
-) {
-  const [orderNumber, posNumberStr] = compositeId.split('.')
-  const pos_number = parseInt(posNumberStr, 10)
+  status: POSITION_STATUS | PRODUCTION_ORDER_STATUS,
+): Promise<Position | import('../../../generated/prisma').ProductionOrder> {
+  const parts = compositeId.split('.')
 
-  const position = await prisma.position.findFirst({
-    where: {
-      order: { orderNumber },
-      pos_number,
-    },
-    include: { order: true },
-  })
+  if (parts.length === 2) {
+    // Position update
+    const [orderNumber, posNumberStr] = parts
+    const pos_number = parseInt(posNumberStr, 10)
 
-  if (!position) throw new Error('Position not found')
-
-  // === Neue Logik: amountInProduction runterzählen, wenn Status = PRODUCTION_COMPLETED ===
-  if (status === POSITION_STATUS.COMPLETED && position.standardProductId) {
-    await prisma.standardProduct.update({
-      where: { id: position.standardProductId },
-      data: {
-        amountInProduction: {
-          decrement: position.amount,
-        },
+    const position = await prisma.position.findFirst({
+      where: {
+        order: { orderNumber },
+        pos_number,
       },
+      include: { order: true },
+    })
+
+    if (!position) {
+      throw new Error('Position not found')
+    }
+
+    // Beim Abschließen Position, amountInProduction reduzieren
+    if (
+      status === POSITION_STATUS.COMPLETED &&
+      position.standardProductId
+    ) {
+      await prisma.standardProduct.update({
+        where: { id: position.standardProductId },
+        data: {
+          amountInProduction: {
+            decrement: position.amount,
+          },
+        },
+      })
+    }
+
+    return prisma.position.update({
+      where: { id: position.id },
+      data: { Status: status as POSITION_STATUS },
     })
   }
 
-  return prisma.position.update({
-    where: { id: position.id },
-    data: { Status: status },
-  })
+  if (parts.length === 3) {
+    // ProductionOrder update
+    const [, , productionOrderId] = parts
+    return updateProductionOrderStatus(
+      productionOrderId,
+      status as PRODUCTION_ORDER_STATUS,
+    )
+  }
+
+  throw new Error(
+    `Invalid compositeId format: ${compositeId}. Expected 2 or 3 parts.`,
+  )
 }
 
 /**
@@ -51,6 +82,7 @@ export async function updatePositionStatusByBusinessKey(
 export async function createPosition(
   orderId: string,
   amount: number,
+  price: string,
   pos_number: number,
   name: string,
   productCategory: string,
@@ -59,13 +91,14 @@ export async function createPosition(
   shirtSize: ShirtSize,
   description?: string,
   standardProductId?: string,
-) {
+): Promise<Position> {
   return prisma.position.create({
     data: {
       order: { connect: { id: orderId } },
       pos_number,
       description,
       amount,
+      price: new Prisma.Decimal(price),
       name,
       productCategory,
       design,
@@ -77,12 +110,16 @@ export async function createPosition(
   })
 }
 
+/**
+ * Batch‐Handler für “Finished Goods” Anforderungen.
+ */
 export async function requestFinishedGoodsHandler(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
   const { orderNumber, positions } =
     requestFinishedGoodsSchema.shape.body.parse(request.body)
+
   const results: Array<{
     id: string
     message: string
@@ -91,30 +128,22 @@ export async function requestFinishedGoodsHandler(
 
   for (const pos of positions) {
     try {
-      // Position laden
       const position = await getPositionById(pos.id)
       if (!position) {
-        console.error(
-          'keine Position in der Datenbank gefunden zur pos ID: ' + pos.id,
-        )
+        console.error('keine Position gefunden für ID: ' + pos.id)
         continue
       }
 
-      // Fertigungsaufträge für diese Position laden
       const productionOrders = await getProductionOrdersByPositionId(pos.id)
-
       if (productionOrders.length === 0) {
         console.error(
-          'Die Position hat keine Fertigungsauftrag war nur ein lagerauftrag und ist demnach schon ausgelagert.. ' +
-            pos.id,
+          'keine Fertigungsaufträge für Position (nur Lager): ' + pos.id,
         )
         continue
       }
 
-      // Für jeden Fertigungsauftrag die Fertigware anfordern
       for (const order of productionOrders) {
         const businessKey = `${orderNumber}.${position.pos_number}`
-
         const res = await requestFinishedGoods(
           order.materialId,
           order.amount,
@@ -124,7 +153,7 @@ export async function requestFinishedGoodsHandler(
         results.push({
           id: pos.id,
           message: res.status,
-          newStatus: 'OUTSOURCING_REQUESTED',
+          newStatus: POSITION_STATUS.OUTSOURCING_REQUESTED,
         })
       }
     } catch (error) {
@@ -135,6 +164,11 @@ export async function requestFinishedGoodsHandler(
   reply.send({ orderNumber, results })
 }
 
-export async function getPositionById(id: string): Promise<Position | null> {
-  return prisma.position.findFirst({ where: { id: id } })
+/**
+ * Liefert eine Position nach ihrer ID.
+ */
+export async function getPositionById(
+  id: string,
+): Promise<Position | null> {
+  return prisma.position.findUnique({ where: { id } })
 }
