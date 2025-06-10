@@ -95,7 +95,8 @@ describe('Position Service Unit Tests', () => {
     const pos = await makePosition(order.id, { pos_number: 3 })
     const prodOrder = await makeProductionOrder(pos.id)
 
-    const compositeId = `${order.orderNumber}.${pos.pos_number}.${prodOrder.id}`
+    // use numeric productionorder_number for composite key
+    const compositeId = `${order.orderNumber}.${pos.pos_number}.${prodOrder.productionorder_number}`
 
     const updatedOrder = await updatePositionStatusByBusinessKey(
       compositeId,
@@ -179,7 +180,8 @@ describe('Position Routes', () => {
     const pos = await makePosition(order.id, { pos_number: 6 })
     const prodOrder = await makeProductionOrder(pos.id)
 
-    const compositeId = `${order.orderNumber}.${pos.pos_number}.${prodOrder.id}`
+    // use numeric productionorder_number in the key
+    const compositeId = `${order.orderNumber}.${pos.pos_number}.${prodOrder.productionorder_number}`
 
     const res = await app.inject({
       method: 'PATCH',
@@ -232,3 +234,4 @@ describe('Position Routes', () => {
     }
   })
 })
+
