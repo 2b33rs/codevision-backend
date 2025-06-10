@@ -3,22 +3,21 @@
 ALTER TABLE "Order"
   DROP COLUMN IF EXISTS "orderNumber";
 
--- Create trigger function to populate orderNumber
+-- Trigger-Funktion neu anlegen (ohne nextval)
 CREATE OR REPLACE FUNCTION assign_order_number()
 RETURNS trigger AS $$
 BEGIN
-  IF TG_OP = 'INSERT' THEN
-    NEW.seq := nextval(pg_get_serial_sequence('"Order"', 'seq'));
-  END IF;
-  NEW."orderNumber" := to_char(NEW."createdAt", 'YYYY') || lpad(NEW.seq::text, 4, '0');
+  -- Prisma hat NEW.seq bereits per autoincrement gesetzt
+  NEW."orderNumber" :=
+    to_char(NEW."createdAt", 'YYYY')
+    || lpad(NEW.seq::text, 4, '0');
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
--- Attach trigger before insert on Order
+-- Trigger neu anlegen
 DROP TRIGGER IF EXISTS trg_assign_order_number ON "Order";
 CREATE TRIGGER trg_assign_order_number
   BEFORE INSERT ON "Order"
-  FOR EACH ROW EXECUTE FUNCTION assign_order_number();
-
-
+  FOR EACH ROW
+  EXECUTE FUNCTION assign_order_number();
