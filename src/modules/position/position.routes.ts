@@ -21,7 +21,32 @@ export default async function positionRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['Position'],
       description:
-        'Update the status of an existing position or production order using a composite business key',
+        'Update the status of an existing position or production order using a composite business key:' +
+        '' +
+        '' +
+        '' +
+        '' +
+        'Values for Status (Production) const PRODUCTION_ORDER_STATUS: {\n' +
+        "  CANCELLED: 'CANCELLED',\n" +
+        "  ORDER_RECEIVED: 'ORDER_RECEIVED',\n" +
+        "  AUTHORISED: 'AUTHORISED',\n" +
+        "  DYEING: 'DYEING',\n" +
+        "  PRINTING: 'PRINTING',\n" +
+        "  COMPLETED: 'COMPLETED'\n" +
+        '};' +
+        '' +
+        '' +
+        'Values for Status (MaWi)  export const POSITION_STATUS: {\n' +
+        "  OPEN: 'OPEN',\n" +
+        "  IN_PROGRESS: 'IN_PROGRESS',\n" +
+        "  READY_FOR_PICKUP: 'READY_FOR_PICKUP',\n" +
+        "  READY_FOR_SHIPMENT: 'READY_FOR_SHIPMENT',\n" +
+        "  OUTSOURCING_REQUESTED: 'OUTSOURCING_REQUESTED',\n" +
+        "  READY_FOR_INSPECTION: 'READY_FOR_INSPECTION',\n" +
+        "  INSPECTED: 'INSPECTED',\n" +
+        "  COMPLETED: 'COMPLETED',\n" +
+        "  CANCELLED: 'CANCELLED' ",
+
       params: zodToJsonSchema(positionStatusPatchSchema.shape.params),
       body: zodToJsonSchema(positionStatusPatchSchema.shape.body),
       response: {

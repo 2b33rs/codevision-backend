@@ -12,6 +12,8 @@ export function createServer() {
       'https://codevision.up.railway.app',
       'https://white-dune-0347c7a03.6.azurestaticapps.net',
       'http://localhost:80',
+      'https://backend-your-shirt-gmbh-production.up.railway.app',
+      'https://frontend-your-shirt-gmbh.vercel.app',
     ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   })

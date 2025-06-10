@@ -1,12 +1,10 @@
 import {
+  $Enums,
   PRODUCTION_ORDER_STATUS,
   ProductionOrder,
 } from '../../../generated/prisma'
 import { prisma } from '../../plugins/prisma'
 import { createProductionOrderZ } from './production-order.schema'
-import { $Enums } from '../../../generated/prisma'
-import { getInventoryCount } from '../../external/mawi.service'
-import { cmykObjectToString } from '../../utils/color.util' // Import ergänzen
 import axios from 'axios'
 
 const PRODUCTION_API_URL = process.env.PRODUCTION_API_URL as string
@@ -44,10 +42,10 @@ export async function createProductionOrder(input: unknown) {
   const parsed = createProductionOrderZ.parse(input)
 
   if (!parsed.positionId) {
-    throw new Error('positionId darf nicht undefined sein.');
+    throw new Error('positionId darf nicht undefined sein.')
   }
   if (!parsed.materialId) {
-    throw new Error('materialId darf nicht undefined sein.');
+    throw new Error('materialId darf nicht undefined sein.')
   }
 
   // Produktionsauftrag anlegen, jetzt mit materialId
@@ -97,7 +95,8 @@ export async function createProductionOrder(input: unknown) {
 
   const rawOrderId = position.order.orderNumber.toString()
   const rawPosNumber = position.pos_number.toString()
-  const rawProductionorderNumber = productionOrder.productionorder_number.toString()
+  const rawProductionorderNumber =
+    productionOrder.productionorder_number.toString()
   const orderIdPositionsId = `${rawOrderId}.${rawPosNumber}.${rawProductionorderNumber}`
 
   const tpl = productionOrder.productTemplate as {
@@ -143,10 +142,10 @@ export async function createProductionOrder(input: unknown) {
     // Axios Fehlerbehandlung
     const status = error.response?.status ?? 'unbekannt'
     const statusText = error.response?.statusText ?? ''
-    const data = error.response?.data ? JSON.stringify(error.response.data) : error.message
-    throw new Error(
-      `Produktions-API-Fehler: ${status} ${statusText} - ${data}`,
-    )
+    const data = error.response?.data
+      ? JSON.stringify(error.response.data)
+      : error.message
+    throw new Error(`Produktions-API-Fehler: ${status} ${statusText} - ${data}`)
   }
 
   return {
