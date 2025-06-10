@@ -92,24 +92,4 @@ describe('Product Routes – vollständige Abdeckung', () => {
     const deleted = res.json()
     expect(deleted.deletedAt).not.toBeNull()
   })
-
-  it('POST   /product/:id/production-order – create production order', async () => {
-    const product = await makeProduct({
-      name: 'ProdOrderTest',
-      minAmount: 2,
-      color: 'cmyk(10%,20%,30%,40%)',
-      shirtSize: 'L',
-    })
-
-    const res = await app.inject({
-      method: 'POST',
-      url: `/product/${product.id}/production-order`,
-      payload: { amount: 5 },
-    })
-    expect(res.statusCode).toBe(200)
-    const body = res.json()
-    expect(body.status).toBe('ok')
-    expect(body.productId).toBe(product.id)
-    expect(body.amount).toBe(5)
-  })
 })

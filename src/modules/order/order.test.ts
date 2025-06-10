@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { app } from '../../vitest.setup'
 import { makeCustomer, makeOrder, makePosition } from '../../utils/test.factory'
+import { createOrder } from './order.service'
+import { setTimeout } from 'timers/promises'
+import { PositionInput } from './order.schema'
 import {
-  createOrder,
   getAllOrders,
   getOrderById,
   getOrdersByCustomer,
   getOrdersWithPositionStatus,
-  PositionInput,
-} from './order.service'
-import { setTimeout } from 'timers/promises'
+} from './order.repo'
 
 describe('Order Service Unit Tests (mit Positionen)', () => {
   it('should create a new order with positions and incremented order number', async () => {
@@ -18,7 +18,7 @@ describe('Order Service Unit Tests (mit Positionen)', () => {
     const positions: PositionInput[] = [
       {
         amount: 3,
-        price: '19.90',                       
+        price: '19.90',
         pos_number: 1,
         name: 'Gold-Shirt',
         productCategory: 'T_SHIRT',

@@ -1,13 +1,7 @@
 import { FastifyInstance } from 'fastify'
-import {
-  create,
-  createProductionOrder,
-  list,
-  read,
-  remove,
-  update,
-} from './product.service'
+import { create, list, read, remove, update } from './product.service'
 import { schemas } from './product.schema'
+import { createProductionOrder } from '../production-order/production-order.service'
 
 export default async function productRoutes(fastify: FastifyInstance) {
   fastify.post('/', {

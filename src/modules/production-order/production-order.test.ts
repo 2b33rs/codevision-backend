@@ -43,7 +43,6 @@ describe('POST /production/:positionId/production-order', () => {
         },
       },
     })
-    
 
     expect(response.statusCode).toBe(200)
     const body = response.json()

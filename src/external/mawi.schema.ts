@@ -36,3 +36,8 @@ export type RequestFinishedGoodsInput = z.infer<typeof requestFinishedGoodsZ>
 export type RequestFinishedGoodsResponse = {
   status: string
 }
+
+export type InventoryStock = {
+  anzahl: number
+  material_ID?: number | null
+}

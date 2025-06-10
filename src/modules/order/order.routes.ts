@@ -1,16 +1,20 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 
-import { createOrderZ, listOrdersQueryZ, schemas } from './order.schema'
 import {
-  createOrder,
+  createOrderZ,
+  listOrdersQueryZ,
+  PositionInput,
+  schemas,
+} from './order.schema'
+import { createOrder } from './order.service'
+import { POSITION_STATUS } from '../../../generated/prisma'
+import {
   getAllOrders,
   getOrderById,
   getOrdersByCustomer,
   getOrdersWithPositionStatus,
-  PositionInput,
-} from './order.service'
-import { POSITION_STATUS } from '../../../generated/prisma'
+} from './order.repo'
 
 export default async function orderRoutes(fastify: FastifyInstance) {
   /* ───────── POST /orders ───────── */

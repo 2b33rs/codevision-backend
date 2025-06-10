@@ -49,9 +49,8 @@ export const orderBaseZ = z.object({
   updatedAt: z.string().datetime().optional(),
   deletedAt: z.string().datetime().nullable().optional(),
   orderNumber: z.string().optional(),
-  
-  productionOrders: z.array(productionOrderResponseSchema).default([]),
 
+  productionOrders: z.array(productionOrderResponseSchema).default([]),
 })
 
 /* Eingaben */
@@ -94,4 +93,17 @@ export const schemas = {
   queryList: zodToJsonSchema(listOrdersQueryZ),
   orderResponse: zodToJsonSchema(orderResponseZ),
   ordersResponse: zodToJsonSchema(z.array(orderResponseZ)),
+}
+
+export interface PositionInput {
+  amount: number
+  price: string
+  pos_number: number
+  name: string
+  productCategory: string
+  design: string
+  color: string
+  shirtSize: ShirtSize
+  description?: string
+  standardProductId?: string
 }
