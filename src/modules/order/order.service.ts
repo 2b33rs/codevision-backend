@@ -67,6 +67,6 @@ export async function createOrder(
     }
   } catch (err) {
     console.error('❌ Fehler in createOrder:', err)
-    throw new Error('Fehler beim Erstellen der Bestellung: ' + (err as Error).message)
+    throw err
   }
 }

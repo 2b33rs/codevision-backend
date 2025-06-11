@@ -57,8 +57,12 @@ export async function getOrdersWithPositionStatus(status: POSITION_STATUS) {
         },
       },
       include: {
-        positions: { include: { productionOrders: true } },
         customer: true,
+        positions: {
+          include: {
+            productionOrders: true
+          }
+        }
       },
     })
   } catch (err) {

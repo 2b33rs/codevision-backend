@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { prisma } from '../../plugins/prisma'
 import {
   createOrderZ,
   listOrdersQueryZ,
@@ -9,6 +8,12 @@ import {
 } from './order.schema'
 import { createOrder } from './order.service'
 import { POSITION_STATUS } from '../../../generated/prisma'
+import {
+  getAllOrders,
+  getOrderById,
+  getOrdersByCustomer,
+  getOrdersWithPositionStatus,
+} from './order.repo'
 
 export default async function orderRoutes(fastify: FastifyInstance) {
   /* ───────── POST /orders ───────── */
@@ -79,18 +84,7 @@ export default async function orderRoutes(fastify: FastifyInstance) {
     },
     async (req, reply) => {
       try {
-        const order = await prisma.order.findUnique({
-          where: { id: req.params.id },
-          include: {
-            customer: true,
-            positions: {
-              include: {
-                productionOrders: true
-              }
-            }
-          }
-        })
-        
+        const order = await getOrderById(req.params.id)
         return order
           ? reply.send(order)
           : reply.status(404).send({ message: 'Order not found' })
@@ -135,30 +129,9 @@ export default async function orderRoutes(fastify: FastifyInstance) {
         const { customerId } = req.query
 
         if (customerId) {
-          const orders = await prisma.order.findMany({
-            where: { customerId },
-            include: {
-              customer: true,
-              positions: {
-                include: {
-                  productionOrders: true
-                }
-              }
-            }
-          })
-          return reply.send(orders)
+          return reply.send(await getOrdersByCustomer(customerId))
         }
-        
-        const orders = await prisma.order.findMany({
-          include: {
-            customer: true,
-            positions: {
-              include: {
-                productionOrders: true
-              }
-            }
-          }
-        })
+        const orders = await getAllOrders()
         return reply.send(orders)
       } catch (err: any) {
         console.error('❌ Fehler in order GET /orders:')
@@ -204,24 +177,7 @@ export default async function orderRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const { status } = request.params
       try {
-        const orders = await prisma.order.findMany({
-          where: {
-            positions: {
-              some: {
-                Status: status,
-              },
-            },
-          },
-          include: {
-            customer: true,
-            positions: {
-              where: { Status: status },
-              include: {
-                productionOrders: true
-              }
-            }
-          }
-        })
+        const orders = await getOrdersWithPositionStatus(status)
         reply.send(orders)
       } catch (error) {
         console.error('❌ Fehler in GET /order/status/:status:', error)
