@@ -45,15 +45,28 @@ export async function createOrder(
       await handlePositionInventoryAndProduction(order, pos)
     }
 
+    // ProductionOrders für jede Position abfragen und anhängen
+    const positionsWithProductionOrders = await Promise.all(
+      createdPositions.map(async (pos) => {
+        const productionOrders = await prisma.productionOrder.findMany({
+          where: { positionId: pos.id },
+        });
+        return {
+          ...pos,
+          productionOrders, // Fügt ProductionOrders zur Position hinzu
+        };
+      })
+    );
+
     console.log('✅ Auftrag erfolgreich erstellt:', order.id)
     return {
       id: order.id,
       customerId,
       orderNumber: order.orderNumber,
-      positions: createdPositions,
+      positions: positionsWithProductionOrders, // Verwendet die erweiterten Positionen
     }
   } catch (err) {
     console.error('❌ Fehler in createOrder:', err)
-    throw err
+    throw new Error('Fehler beim Erstellen der Bestellung: ' + (err as Error).message)
   }
 }
