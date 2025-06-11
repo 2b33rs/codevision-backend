@@ -2,11 +2,11 @@ import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 import { $Enums } from '../../../generated/prisma'
 import { customerZ } from '../customer/customer.schema'
-import { productionOrderResponseSchema } from '../production-order/production-order.schema'
+import { PRODUCTION_ORDER_STATUS } from '../../../generated/prisma'
 
 type ShirtSize = $Enums.ShirtSize
-/* ───────── Zod-Schemas (für Typing & Runtime-Validation) ───────── */
 
+/* ───────── Zod-Schemas (für Typing & Runtime-Validation) ───────── */
 export const positionZ = z.object({
   amount: z.number().int().positive(),
   price: z
@@ -28,29 +28,43 @@ export const positionZ = z.object({
     ),
   shirtSize: z.enum(['S', 'M', 'L', 'XL']) as z.ZodType<ShirtSize>,
   description: z.string().nullable().optional(),
-
   standardProductId: z.string().uuid().optional(),
-
+  
+  // Diese Felder kommen aus der DB
   id: z.string().uuid().optional(),
   Status: z.nativeEnum($Enums.POSITION_STATUS).optional(),
   createdAt: z.string().datetime().optional(),
   updatedAt: z.string().datetime().optional(),
   orderId: z.string().uuid().optional(),
-
-  productionOrders: z.array(productionOrderResponseSchema),
+  
+  // WICHTIG: ProductionOrders jetzt in positionZ
+  productionOrders: z.array(
+    z.object({
+      id: z.string().uuid(),
+      positionId: z.string().uuid(),
+      amount: z.number(),
+      designUrl: z.string(),
+      orderType: z.enum(['STANDARD', 'EXPRESS']),
+      dyeingNecessary: z.boolean(),
+      materialId: z.number().nullable().optional(),
+      productTemplate: z.any().optional(), // Optional für Validierung
+      Status: z.nativeEnum(PRODUCTION_ORDER_STATUS),
+      createdAt: z.string().datetime().optional(),
+      updatedAt: z.string().datetime().optional(),
+    }),
+  ),
 })
 
 export const orderBaseZ = z.object({
   customerId: z.string().uuid(),
   customer: customerZ.optional(),
 
+  // Diese Felder kommen aus der DB
   id: z.string().uuid().optional(),
   createdAt: z.string().datetime().optional(),
   updatedAt: z.string().datetime().optional(),
   deletedAt: z.string().datetime().nullable().optional(),
   orderNumber: z.string().optional(),
-
-  productionOrders: z.array(productionOrderResponseSchema).default([]),
 })
 
 /* Eingaben */
@@ -65,12 +79,13 @@ export const createOrderZ = orderBaseZ
   .extend({
     positions: z.array(
       positionZ.omit({
+        // Beim Erstellen nicht mitschicken:
         id: true,
         Status: true,
         createdAt: true,
         updatedAt: true,
         orderId: true,
-        productionOrders: true,
+        productionOrders: true, // Wichtig: Client sendet keine productionOrders
       }),
     ),
   })
@@ -81,10 +96,10 @@ export const listOrdersQueryZ = z.object({
   customerId: z.string().uuid().optional(),
 })
 
-/* Response-Schema */
-export const positionResponseZ = positionZ.omit({ productionOrders: true })
+/* Response-Schema - JETZT MIT PRODUCTIONORDERS */
+export const positionResponseZ = positionZ // Jetzt MIT productionOrders!
 export const orderResponseZ = orderBaseZ.extend({
-  positions: z.array(positionResponseZ),
+  positions: z.array(positionResponseZ), // Enthält jetzt productionOrders
 })
 
 /* ───────── JSON-Schema (für Fastify/Ajv/Swagger) ───────── */
