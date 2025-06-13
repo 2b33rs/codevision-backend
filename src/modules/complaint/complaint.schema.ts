@@ -1,14 +1,15 @@
 import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
+import { $Enums } from '../../../generated/prisma'
 
-// Enum-Werte direkt verwenden
-export const ComplaintReasonEnum = [
-  'WRONG_SIZE', 'WRONG_COLOR', 'PRINT_INCORRECT', 'PRINT_OFF_CENTER',
-  'DAMAGED_ITEM', 'STAINED', 'LATE_DELIVERY', 'WRONG_PRODUCT',
-  'MISSING_ITEM', 'BAD_QUALITY', 'NOT_AS_DESCRIBED', 'OTHER',
-] as const
-
-export const ComplaintKindEnum = ['INTERN', 'EXTERN'] as const
+export const ComplaintReasonEnum = Object.values($Enums.ComplaintReason) as [
+  $Enums.ComplaintReason,
+  ...$Enums.ComplaintReason[],
+]
+export const ComplaintKindEnum = Object.values($Enums.ComplaintKind) as [
+  $Enums.ComplaintKind,
+  ...$Enums.ComplaintKind[],
+]
 
 export const complaintPostZ = z.object({
   positionId: z.string().uuid(),

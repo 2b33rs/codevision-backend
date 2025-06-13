@@ -1,8 +1,7 @@
 import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
-import { $Enums } from '../../../generated/prisma'
+import { $Enums, PRODUCTION_ORDER_STATUS } from '../../../generated/prisma'
 import { customerZ } from '../customer/customer.schema'
-import { PRODUCTION_ORDER_STATUS } from '../../../generated/prisma'
 
 /* ───────── Zod-Schemas (für Typing & Runtime-Validation) ───────── */
 export const positionZ = z.object({
@@ -49,6 +48,7 @@ export const positionZ = z.object({
       Status: z.nativeEnum(PRODUCTION_ORDER_STATUS),
       createdAt: z.string().datetime().optional(),
       updatedAt: z.string().datetime().optional(),
+      productionorder_number: z.number(),
     }),
   ),
 })
@@ -83,7 +83,7 @@ export const createOrderZ = orderBaseZ
         createdAt: true,
         updatedAt: true,
         orderId: true,
-        productionOrders: true, // Wichtig: Client sendet keine productionOrders
+        productionOrders: true,
       }),
     ),
   })
