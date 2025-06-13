@@ -4,7 +4,6 @@ import { $Enums } from '../../../generated/prisma'
 import { customerZ } from '../customer/customer.schema'
 import { productionOrderResponseSchema } from '../production-order/production-order.schema'
 
-type ShirtSize = $Enums.ShirtSize
 /* ───────── Zod-Schemas (für Typing & Runtime-Validation) ───────── */
 
 export const positionZ = z.object({
@@ -26,7 +25,7 @@ export const positionZ = z.object({
         [...s.matchAll(/\d{1,3}/g)].every((m) => +m[0] >= 0 && +m[0] <= 100),
       { message: 'Invalid CMYK value' },
     ),
-  shirtSize: z.enum(['S', 'M', 'L', 'XL']) as z.ZodType<ShirtSize>,
+  shirtSize: z.string(),
   description: z.string().nullable().optional(),
 
   standardProductId: z.string().uuid().optional(),
@@ -103,7 +102,7 @@ export interface PositionInput {
   productCategory: string
   design: string
   color: string
-  shirtSize: ShirtSize
+  shirtSize: string
   description?: string
   standardProductId?: string
 }
