@@ -5,19 +5,40 @@ import POSITION_STATUS = $Enums.POSITION_STATUS
 export const getOrderById = (id: string) =>
   prisma.order.findUnique({
     where: { id },
-    include: { positions: true, customer: true },
+    include: { 
+      positions: { 
+        include: { 
+          productionOrders: true 
+        } 
+      }, 
+      customer: true 
+    },
   })
 
 export const getOrdersByCustomer = (customerId: string) =>
   prisma.order.findMany({
     where: { customerId },
-    include: { positions: true, customer: true },
+    include: { 
+      positions: { 
+        include: { 
+          productionOrders: true 
+        } 
+      }, 
+      customer: true 
+    },
   })
 
 export const getAllOrders = async () => {
   try {
     return await prisma.order.findMany({
-      include: { positions: true, customer: true },
+      include: { 
+        positions: { 
+          include: { 
+            productionOrders: true 
+          } 
+        }, 
+        customer: true 
+      },
     })
   } catch (err) {
     console.error('❌ Fehler beim Laden der Orders:', err)
@@ -36,12 +57,16 @@ export async function getOrdersWithPositionStatus(status: POSITION_STATUS) {
         },
       },
       include: {
-        positions: { include: { productionOrders: true } },
         customer: true,
+        positions: {
+          include: {
+            productionOrders: true
+          }
+        }
       },
     })
   } catch (err) {
-    console.error('❌ Fehler in createOrder:', err)
+    console.error('❌ Fehler in getOrdersWithPositionStatus:', err)
     throw err
   }
 }

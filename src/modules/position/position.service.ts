@@ -16,6 +16,13 @@ import PRODUCTION_ORDER_STATUS = $Enums.PRODUCTION_ORDER_STATUS
  * - Für Positionen: "orderNumber.pos_number"
  * - Für Fertigungsaufträge: "orderNumber.pos_number.productionOrderId"
  */
+/**
+ * Aktualisiert den Status einer Position oder eines Fertigungsauftrags
+ * über den zusammengesetzten Geschäftsschlüssel.
+ *
+ * - Für Positionen: "orderNumber.pos_number"
+ * - Für Fertigungsaufträge: "orderNumber.pos_number.productionorder_number"
+ */
 export async function updatePositionStatusByBusinessKey(
   compositeId: string,
   status: POSITION_STATUS | PRODUCTION_ORDER_STATUS,
@@ -23,31 +30,21 @@ export async function updatePositionStatusByBusinessKey(
   const parts = compositeId.split('.')
 
   if (parts.length === 2) {
-    // Position update
+    // Position updaten
     const [orderNumber, posNumberStr] = parts
     const pos_number = parseInt(posNumberStr, 10)
 
     const position = await prisma.position.findFirst({
-      where: {
-        order: { orderNumber },
-        pos_number,
-      },
+      where: { order: { orderNumber }, pos_number },
       include: { order: true },
     })
-
-    if (!position) {
-      throw new Error('Position not found')
-    }
+    if (!position) throw new Error('Position not found')
 
     // Beim Abschließen Position, amountInProduction reduzieren
     if (status === POSITION_STATUS.COMPLETED && position.standardProductId) {
       await prisma.standardProduct.update({
         where: { id: position.standardProductId },
-        data: {
-          amountInProduction: {
-            decrement: position.amount,
-          },
-        },
+        data: { amountInProduction: { decrement: position.amount } },
       })
     }
 
@@ -58,10 +55,29 @@ export async function updatePositionStatusByBusinessKey(
   }
 
   if (parts.length === 3) {
-    // ProductionOrder update
-    const [, , productionOrderId] = parts
+    // ProductionOrder updaten
+    const [orderNumber, posNumberStr, prodNumStr] = parts
+    const pos_number = parseInt(posNumberStr, 10)
+    const productionorder_number = parseInt(prodNumStr, 10)
+
+    // Position finden
+    const position = await prisma.position.findFirst({
+      where: { order: { orderNumber }, pos_number },
+    })
+    if (!position) throw new Error('Position not found')
+
+    // ProductionOrder per Nummer finden
+    const prodOrder = await prisma.productionOrder.findFirst({
+      where: {
+        positionId: position.id,
+        productionorder_number,
+      },
+    })
+    if (!prodOrder) throw new Error('ProductionOrder not found')
+
+    // Status-Update
     return updateProductionOrderStatus(
-      productionOrderId,
+      prodOrder.id,
       status as PRODUCTION_ORDER_STATUS,
     )
   }
@@ -70,6 +86,7 @@ export async function updatePositionStatusByBusinessKey(
     `Invalid compositeId format: ${compositeId}. Expected 2 or 3 parts.`,
   )
 }
+
 
 /**
  * Legt eine neue Position an.
