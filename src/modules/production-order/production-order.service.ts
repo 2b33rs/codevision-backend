@@ -7,33 +7,6 @@ import { prisma } from '../../plugins/prisma'
 import { createProductionOrderZ } from './production-order.schema'
 import { sendProductionOrder } from '../../external/production.service'
 
-export async function getProductionOrdersByPositionId(
-  positionId: string,
-): Promise<ProductionOrder[]> {
-  return prisma.productionOrder.findMany({
-    where: {
-      positionId: positionId,
-      deletedAt: null,
-    },
-    orderBy: {
-      createdAt: 'asc',
-    },
-  })
-}
-
-export async function updateProductionOrderStatus(
-  id: string,
-  status: PRODUCTION_ORDER_STATUS,
-): Promise<ProductionOrder> {
-  return prisma.productionOrder.update({
-    where: { id },
-    data: {
-      Status: status,
-      updatedAt: new Date(),
-    },
-  })
-}
-
 export async function createProductionOrder(input: unknown) {
   // Input validieren und parsen
   const parsed = createProductionOrderZ.parse(input)
@@ -82,4 +55,31 @@ export async function createProductionOrder(input: unknown) {
     message: `Produktionsauftrag #${productionOrder.productionorder_number} über ${parsed.amount} Stück ausgelöst`,
     productionOrder,
   }
+}
+
+export async function getProductionOrdersByPositionId(
+  positionId: string,
+): Promise<ProductionOrder[]> {
+  return prisma.productionOrder.findMany({
+    where: {
+      positionId: positionId,
+      deletedAt: null,
+    },
+    orderBy: {
+      createdAt: 'asc',
+    },
+  })
+}
+
+export async function updateProductionOrderStatus(
+  id: string,
+  status: PRODUCTION_ORDER_STATUS,
+): Promise<ProductionOrder> {
+  return prisma.productionOrder.update({
+    where: { id },
+    data: {
+      Status: status,
+      updatedAt: new Date(),
+    },
+  })
 }
