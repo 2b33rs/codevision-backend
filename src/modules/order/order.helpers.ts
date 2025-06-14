@@ -33,7 +33,7 @@ export async function handlePositionInventoryAndProduction(
     shirtSize: pos.shirtSize ?? undefined,
     design: pos.design,
     category: pos.productCategory,
-    typ: 'V-Ausschnitt',
+    typ: pos.typ?.[0],
   })
 
   let remaining = pos.amount - stockWithDesign.anzahl
@@ -61,7 +61,7 @@ export async function handlePositionInventoryAndProduction(
       color: 'cmyk(0%,0%,0%,0%)',
       shirtSize: pos.shirtSize ?? undefined,
       category: pos.productCategory,
-      typ: 'V-Ausschnitt',
+      typ: pos.typ?.[0],
     })
     await triggerDyeAndPrintProduction(pos, remaining, stockWhite.material_ID)
   }
@@ -110,7 +110,7 @@ export async function triggerPrintProduction(
       artikelnummer: materialId ?? '',
       groesse: pos.shirtSize,
       farbcode: parseCMYKForMawi(pos.color) ?? {},
-      typ: 'V-Ausschnitt',
+      typ: pos.typ?.[0],
     },
     Status: 'ORDER_RECEIVED',
   })
@@ -141,7 +141,7 @@ export async function triggerDyeAndPrintProduction(
       artikelnummer: materialId ?? '',
       groesse: pos.shirtSize,
       farbcode: parseCMYKForMawi(pos.color) ?? {},
-      typ: 'V-Ausschnitt',
+      typ: pos.typ?.[0],
     },
     Status: 'ORDER_RECEIVED',
   })

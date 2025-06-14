@@ -26,6 +26,7 @@ export const positionZ = z.object({
   shirtSize: z.string(),
   description: z.string().nullable().optional(),
   standardProductId: z.string().uuid().optional(),
+  typ: z.array(z.string()).optional(),
 
   // Diese Felder kommen aus der DB
   id: z.string().uuid().optional(),
@@ -119,4 +120,5 @@ export interface PositionInput {
   shirtSize: string
   description?: string
   standardProductId?: string
+  typ?: string[]
 }

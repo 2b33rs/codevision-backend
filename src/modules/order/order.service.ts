@@ -36,6 +36,7 @@ export async function createOrder(
           p.shirtSize,
           p.description,
           p.standardProductId,
+          p.typ
         ),
       ),
     )
