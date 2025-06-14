@@ -1,205 +1,51 @@
 import 'dotenv/config'
+import fs from 'fs'
+import path from 'path'
 import { faker } from '@faker-js/faker'
-import { Prisma, $Enums, ComplaintKind, ComplaintReason } from '../generated/prisma'
-import type { StandardProduct } from '../generated/prisma'
 import { prisma } from '../src/plugins/prisma'
-import POSITION_STATUS = $Enums.POSITION_STATUS
-import ShirtSize = $Enums.ShirtSize
-import CustomerType = $Enums.CustomerType
-import addr_Land = $Enums.addr_Land
+import type { StandardProduct as PrismaSP } from '../generated/prisma'
 
 async function main() {
-  const sizes = Object.values(ShirtSize)
-  const statuses = Object.values(POSITION_STATUS)
-  const reasons = Object.values(ComplaintReason)
-  const kinds = Object.values(ComplaintKind)
+  // === 1. Standardprodukte aus JSON importieren ===
+  const filePath = path.resolve(__dirname, 'data/standardProducts.json')
+  const rawJson = fs.readFileSync(filePath, 'utf-8')
+  const rawProducts: Array<{
+    color: string
+    shirtSize: string
+    productCategory: string
+    typ: string
+  }> = JSON.parse(rawJson)
 
-  const yearPrefix = new Date().getFullYear().toString()
-  let orderSequence = 1
-
-  // === 1. Erzeuge Standardprodukte ===
-  const standardProducts: StandardProduct[] = []
-  const allTypen = ['Sport', 'Rundhals', 'Oversize', 'Top', 'V-Ausschnitt', 'Bedruckt']
-
-  for (let i = 0; i < 5; i++) {
-    const product = await prisma.standardProduct.create({
+  for (const p of rawProducts) {
+    await prisma.standardProduct.create({
       data: {
-        name: faker.commerce.productName(),
-        minAmount: faker.number.int({ min: 1, max: 20 }),
-        color: `cmyk(${Array.from({ length: 4 })
-          .map(() => `${faker.number.int({ min: 0, max: 100 })}%`)
-          .join(',')})`,
-        shirtSize: faker.helpers.arrayElement(sizes),
-        productCategory: 'T-Shirt',
-        amountInProduction: faker.number.int({ min: 0, max: 50 }),
-        typ: faker.helpers.arrayElements(allTypen),
+        name: `${p.productCategory} ${p.typ}`,
+        color:    p.color    || null,
+        shirtSize:p.shirtSize|| null,
+        productCategory: p.productCategory,
+        typ:      [p.typ],
+        minAmount:         0,
+        currentStock:      0,
+        amountInProduction:0,
       },
     })
-    standardProducts.push(product)
   }
 
-  const allStandardProducts = await prisma.standardProduct.findMany()
-
-  // === 2. Erzeuge Kunden, Orders, Positionen ===
-  for (let i = 0; i < 10; i++) {
-    const hasCustomer = faker.number.int({ min: 0, max: 2 }) > 0
-    const customer = hasCustomer
-      ? await prisma.customer.create({
-          data: {
-            email: faker.internet.email(),
-            name: faker.person.fullName(),
-            phone: faker.phone.number(),
-            addr_city: faker.location.city(),
-            addr_zip: faker.location.zipCode(),
-            addr_street: faker.location.street(),
-            addr_line1: faker.location.buildingNumber(),
-            customerType: faker.helpers.arrayElement(['WEBSHOP', 'BUSINESS']),
-          },
-        })
-      : null
-
-    const orderCount = faker.number.int({ min: 1, max: 5 })
-    for (let j = 0; j < orderCount; j++) {
-      const orderNumber = `${yearPrefix}${orderSequence.toString().padStart(4, '0')}`
-      orderSequence++
-
-      const order = await prisma.order.create({
-        data: { customerId: customer?.id ?? null, orderNumber, deletedAt: null },
-      })
-
-      const posCount = faker.number.int({ min: 1, max: 6 })
-      for (let k = 0; k < posCount; k++) {
-        const maybeStandardProduct = faker.helpers.maybe(() =>
-          faker.helpers.arrayElement(allStandardProducts),
-        )
-        const hasComplaint = faker.datatype.boolean()
-
-
-        if (hasComplaint) {
-          const position = await prisma.position.create({
-            data: {
-              orderId: order.id,
-              pos_number: k + 1,
-              name: faker.commerce.productName(),
-              description: '',
-              amount: faker.number.int({ min: 1, max: 10 }),
-              price: new Prisma.Decimal(faker.commerce.price()),
-              design: `https://picsum.photos/id/${faker.number.int({ min: 1, max: 100 })}/200/300`,
-              color: `cmyk(${Array.from({ length: 4 })
-                .map(() => `${faker.number.int({ min: 0, max: 100 })}%`)
-                .join(',')})`,
-              shirtSize: faker.helpers.arrayElement(sizes),
-              productCategory: 'T-Shirt',
-              Status: POSITION_STATUS.CANCELLED,
-              standardProductId: maybeStandardProduct?.id ?? null,
-              complaints: {
-                create: {
-                  ComplaintReason: faker.helpers.arrayElement(reasons),
-                  ComplaintKind: faker.helpers.arrayElement(kinds),
-                  createNewOrder: faker.datatype.boolean(),
-                  updatedAt: faker.date.recent({ days: 30 }),
-                },
-              },
-            },
-          })
-
-          
-
-          // === ProductionOrder für diese Position anlegen ===
-          const productTemplate = {
-            kategorie: 'T-Shirt',
-            artikelnummer: faker.number.int({ min: 100, max: 3000 }), 
-            groesse: position.shirtSize ?? faker.helpers.arrayElement(sizes),
-            farbcode: {
-              c: faker.number.int({ min: 0, max: 100 }),
-              m: faker.number.int({ min: 0, max: 100 }),
-              y: faker.number.int({ min: 0, max: 100 }),
-              k: faker.number.int({ min: 0, max: 100 }),
-            },
-            typ: faker.helpers.arrayElement(allTypen),
-          }
-          
-          const prodOrderCount = faker.number.int({ min: 1, max: 3 }); // z.B. 1-3 ProductionOrders pro Position
-          for (let n = 0; n < prodOrderCount; n++) {
-            const currentProdOrderCount = await prisma.productionOrder.count({
-              where: { positionId: position.id },
-            });
-            const nextProdOrderNumber = currentProdOrderCount + 1;
-
-            await prisma.productionOrder.create({
-              data: {
-                positionId: position.id,
-                amount: faker.number.int({ min: 1, max: 10 }),
-                designUrl: position.design,
-                orderType: faker.helpers.arrayElement(['STANDARD', 'COMPLAINT']),
-                dyeingNecessary: faker.datatype.boolean(),
-                materialId: productTemplate.artikelnummer, 
-                productTemplate,
-                Status: 'ORDER_RECEIVED',
-                productionorder_number: nextProdOrderNumber,
-              },
-            })
-          }
-        } else {
-          const position = await prisma.position.create({
-            data: {
-              orderId: order.id,
-              pos_number: k + 1,
-              name: faker.commerce.productName(),
-              description: '',
-              amount: faker.number.int({ min: 1, max: 10 }),
-              price: new Prisma.Decimal(faker.commerce.price()),
-              design: `https://picsum.photos/id/${faker.number.int({ min: 1, max: 100 })}/200/300`,
-              color: `cmyk(${Array.from({ length: 4 })
-                .map(() => `${faker.number.int({ min: 0, max: 100 })}%`)
-                .join(',')})`,
-              shirtSize: faker.helpers.arrayElement(sizes),
-              productCategory: 'T-Shirt',
-              Status: faker.helpers.arrayElement(
-                statuses.filter((s) => s !== POSITION_STATUS.CANCELLED),
-              ),
-              standardProductId: maybeStandardProduct?.id ?? null,
-            },
-          })
-
-          // === ProductionOrder für diese Position anlegen ===
-          const productTemplate = {
-            kategorie: 'T-Shirt',
-            artikelnummer: faker.number.int({ min: 100, max: 3000 }), 
-            groesse: position.shirtSize ?? faker.helpers.arrayElement(sizes),
-            farbcode: {
-              c: faker.number.int({ min: 0, max: 100 }),
-              m: faker.number.int({ min: 0, max: 100 }),
-              y: faker.number.int({ min: 0, max: 100 }),
-              k: faker.number.int({ min: 0, max: 100 }),
-            },
-            typ: faker.helpers.arrayElement(allTypen),
-          }
-
-          const prodOrderCount = faker.number.int({ min: 1, max: 3 }); // z.B. 1-3 ProductionOrders pro Position
-          for (let n = 0; n < prodOrderCount; n++) {
-            const currentProdOrderCount = await prisma.productionOrder.count({
-              where: { positionId: position.id },
-            })
-            const nextProdOrderNumber = currentProdOrderCount + 1
-
-            await prisma.productionOrder.create({
-              data: {
-                positionId: position.id,
-                amount: faker.number.int({ min: 1, max: 10 }),
-                designUrl: position.design,
-                orderType: faker.helpers.arrayElement(['STANDARD', 'COMPLAINT']),
-                dyeingNecessary: faker.datatype.boolean(),
-                materialId: productTemplate.artikelnummer,
-                productTemplate,
-                Status: 'ORDER_RECEIVED',
-                productionorder_number: nextProdOrderNumber,
-              },
-            })
-          }
-        }
-      }
-    }
+  // === 2. Demo-Kunden erzeugen ===
+  const CUSTOMER_COUNT = 10
+  for (let i = 0; i < CUSTOMER_COUNT; i++) {
+    await prisma.customer.create({
+      data: {
+        email:        faker.internet.email(),
+        name:         faker.person.fullName(),
+        phone:        faker.phone.number(),
+        addr_city:    faker.location.city(),
+        addr_zip:     faker.location.zipCode(),
+        addr_street:  faker.location.street(),
+        addr_line1:   faker.location.buildingNumber(),
+        customerType: faker.helpers.arrayElement(['WEBSHOP', 'BUSINESS']),
+      },
+    })
   }
 
   await prisma.$disconnect()
