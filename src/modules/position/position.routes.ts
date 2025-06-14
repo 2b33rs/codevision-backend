@@ -91,6 +91,8 @@ export default async function positionRoutes(fastify: FastifyInstance) {
         data.color,
         data.shirtSize,
         data.description ?? undefined,
+        data.standardProductId ?? undefined,
+        data.typ,
       )
       reply.send(pos)
     },

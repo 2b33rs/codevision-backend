@@ -53,6 +53,7 @@ export const positionCreateSchema = z.object({
       ),
     shirtSize: z.enum(['S', 'M', 'L', 'XL']),
     standardProductId: z.string().uuid().optional().nullable(),
+    typ: z.array(z.string()).optional(),
   }),
 })
 

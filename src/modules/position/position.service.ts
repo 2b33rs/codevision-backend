@@ -103,6 +103,7 @@ export async function createPosition(
   shirtSize: string,
   description?: string,
   standardProductId?: string,
+  typ?: string[],
 ): Promise<Position> {
   return prisma.position.create({
     data: {
@@ -118,6 +119,7 @@ export async function createPosition(
       shirtSize,
       Status: POSITION_STATUS.IN_PROGRESS,
       standardProductId,
+      typ,
     },
   })
 }

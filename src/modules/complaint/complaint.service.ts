@@ -41,6 +41,7 @@ export async function createComplaint(input: {
               shirtSize: position.shirtSize,
               description: position.description,
               standardProductId: position.standardProductId,
+              typ: position.typ,
             },
           ],
         },
