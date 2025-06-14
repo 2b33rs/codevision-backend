@@ -1,10 +1,7 @@
 import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
-import { $Enums } from '../../../generated/prisma'
+import { $Enums, PRODUCTION_ORDER_STATUS } from '../../../generated/prisma'
 import { customerZ } from '../customer/customer.schema'
-import { PRODUCTION_ORDER_STATUS } from '../../../generated/prisma'
-
-type ShirtSize = $Enums.ShirtSize
 
 /* ───────── Zod-Schemas (für Typing & Runtime-Validation) ───────── */
 export const positionZ = z.object({
@@ -26,17 +23,17 @@ export const positionZ = z.object({
         [...s.matchAll(/\d{1,3}/g)].every((m) => +m[0] >= 0 && +m[0] <= 100),
       { message: 'Invalid CMYK value' },
     ),
-  shirtSize: z.enum(['S', 'M', 'L', 'XL']) as z.ZodType<ShirtSize>,
+  shirtSize: z.string(),
   description: z.string().nullable().optional(),
   standardProductId: z.string().uuid().optional(),
-  
+
   // Diese Felder kommen aus der DB
   id: z.string().uuid().optional(),
   Status: z.nativeEnum($Enums.POSITION_STATUS).optional(),
   createdAt: z.string().datetime().optional(),
   updatedAt: z.string().datetime().optional(),
   orderId: z.string().uuid().optional(),
-  
+
   // WICHTIG: ProductionOrders jetzt in positionZ
   productionOrders: z.array(
     z.object({
@@ -51,6 +48,7 @@ export const positionZ = z.object({
       Status: z.nativeEnum(PRODUCTION_ORDER_STATUS),
       createdAt: z.string().datetime().optional(),
       updatedAt: z.string().datetime().optional(),
+      productionorder_number: z.number(),
     }),
   ),
 })
@@ -85,7 +83,7 @@ export const createOrderZ = orderBaseZ
         createdAt: true,
         updatedAt: true,
         orderId: true,
-        productionOrders: true, // Wichtig: Client sendet keine productionOrders
+        productionOrders: true,
       }),
     ),
   })
@@ -118,7 +116,7 @@ export interface PositionInput {
   productCategory: string
   design: string
   color: string
-  shirtSize: ShirtSize
+  shirtSize: string
   description?: string
   standardProductId?: string
 }

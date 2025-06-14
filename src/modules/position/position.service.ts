@@ -1,4 +1,4 @@
-import { Prisma, $Enums, Position } from '../../../generated/prisma'
+import { $Enums, Position, Prisma } from '../../../generated/prisma'
 import { prisma } from '../../plugins/prisma'
 import { FastifyReply, FastifyRequest } from 'fastify'
 import { requestFinishedGoodsSchema } from './position.schema'
@@ -7,10 +7,8 @@ import {
   getProductionOrdersByPositionId,
   updateProductionOrderStatus,
 } from '../production-order/production-order.service'
-
 import POSITION_STATUS = $Enums.POSITION_STATUS
 import PRODUCTION_ORDER_STATUS = $Enums.PRODUCTION_ORDER_STATUS
-import ShirtSize = $Enums.ShirtSize
 
 /**
  * Aktualisiert den Status einer Position oder eines Fertigungsauftrags über den zusammengesetzten Geschäftsschlüssel.
@@ -43,10 +41,7 @@ export async function updatePositionStatusByBusinessKey(
     if (!position) throw new Error('Position not found')
 
     // Beim Abschließen Position, amountInProduction reduzieren
-    if (
-      status === POSITION_STATUS.COMPLETED &&
-      position.standardProductId
-    ) {
+    if (status === POSITION_STATUS.COMPLETED && position.standardProductId) {
       await prisma.standardProduct.update({
         where: { id: position.standardProductId },
         data: { amountInProduction: { decrement: position.amount } },
@@ -105,7 +100,7 @@ export async function createPosition(
   productCategory: string,
   design: string,
   color: string,
-  shirtSize: ShirtSize,
+  shirtSize: string,
   description?: string,
   standardProductId?: string,
 ): Promise<Position> {
@@ -184,8 +179,6 @@ export async function requestFinishedGoodsHandler(
 /**
  * Liefert eine Position nach ihrer ID.
  */
-export async function getPositionById(
-  id: string,
-): Promise<Position | null> {
+export async function getPositionById(id: string): Promise<Position | null> {
   return prisma.position.findUnique({ where: { id } })
 }
