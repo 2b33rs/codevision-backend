@@ -64,7 +64,7 @@ export default async function positionRoutes(fastify: FastifyInstance) {
         compositeId,
         status,
       )
-      reply.send(`Updated position status successfully to ${updated.Status}`)
+      reply.code(204).send()
     },
   })
 
