@@ -42,6 +42,7 @@ export async function getInventoryCount(
     groesse: parsed.shirtSize ?? '',
     farbe_json,
     typ: parsed.typ ?? 'V-Ausschnitt',
+    standardmaterial: isStandardMaterial,
   }
 
   try {
