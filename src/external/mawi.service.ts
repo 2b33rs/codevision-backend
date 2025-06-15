@@ -1,5 +1,3 @@
-import { z } from 'zod'
-import { prisma } from '../plugins/prisma'
 import axios from 'axios'
 
 import { parseCMYKForMawi } from '../utils/color.util'
@@ -12,10 +10,12 @@ import {
 
 export async function getInventoryCount(
   parsed: GetInventoryCountInput,
+  isStandardMaterial: boolean = true, // Default auf true
 ): Promise<GetInventoryCountResponse> {
   if (process.env.VITEST === 'true') {
     console.log('Returning mocked inventory count (VITEST === true)')
     return {
+      standardmaterial: isStandardMaterial,
       category: 'T-Shirt',
       typ: 'V-Ausschnitt',
       anzahl: 69,
@@ -55,6 +55,7 @@ export async function getInventoryCount(
 
     if (Array.isArray(data) && data.length > 0) {
       return {
+        standardmaterial: isStandardMaterial,
         anzahl: data[0].anzahl ?? 0,
         material_ID: data[0].material_ID ?? null,
         category: parsed.category,
@@ -71,6 +72,7 @@ export async function getInventoryCount(
     }
 
     return {
+      standardmaterial: isStandardMaterial,
       anzahl: 0,
       material_ID: null,
       category: parsed.category,

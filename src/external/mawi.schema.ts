@@ -11,6 +11,7 @@ export const getInventoryCountZ = z.object({
 export type GetInventoryCountInput = z.infer<typeof getInventoryCountZ>
 
 export type GetInventoryCountResponse = {
+  standardmaterial?: boolean
   material_ID: number | null
   category: string
   url?: string

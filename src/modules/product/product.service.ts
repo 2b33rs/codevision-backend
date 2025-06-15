@@ -1,11 +1,6 @@
 import { FastifyReply, FastifyRequest } from 'fastify'
 import { prisma } from '../../plugins/prisma'
-import {
-  $Enums,
-  Prisma,
-  ShirtSize,
-  StandardProduct,
-} from '../../../generated/prisma'
+import { Prisma, ShirtSize, StandardProduct } from '../../../generated/prisma'
 import { getInventoryCount } from '../../external/mawi.service'
 
 type IdParam = { id: string }
@@ -36,13 +31,16 @@ export async function read(
 
   if (!product) return res.code(404).send()
 
-  const inventoryCountResponse = await getInventoryCount({
-    design: null,
-    category: product.productCategory,
-    typ: product.typ?.[0],
-    color: product.color,
-    shirtSize: product.shirtSize as ShirtSize,
-  })
+  const inventoryCountResponse = await getInventoryCount(
+    {
+      design: null,
+      category: product.productCategory,
+      typ: product.typ?.[0],
+      color: product.color,
+      shirtSize: product.shirtSize as ShirtSize,
+    },
+    true,
+  ) // Immer true für StandardProducts
 
   const currentStock = inventoryCountResponse.anzahl
   res.send({
@@ -79,13 +77,16 @@ export async function list(
 
   const enriched = await Promise.all(
     products.map(async (product: any) => {
-      const inventoryCountResponse = await getInventoryCount({
-        design: null,
-        category: product.productCategory,
-        typ: product.typ?.[0],
-        color: product.color,
-        shirtSize: product.shirtSize as ShirtSize,
-      })
+      const inventoryCountResponse = await getInventoryCount(
+        {
+          design: null,
+          category: product.productCategory,
+          typ: product.typ?.[0],
+          color: product.color,
+          shirtSize: product.shirtSize as ShirtSize,
+        },
+        true,
+      ) // Immer true für StandardProducts
       const currentStock = inventoryCountResponse.anzahl
       const restbestand =
         currentStock + product.amountInProduction - product.minAmount

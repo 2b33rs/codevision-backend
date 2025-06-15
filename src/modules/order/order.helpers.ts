@@ -8,33 +8,22 @@ import { parseCMYKForMawi } from '../../utils/color.util'
 import { createProductionOrder } from '../production-order/production-order.service'
 import { InventoryStock } from '../../external/mawi.schema'
 
-export async function generateOrderNumber(): Promise<string> {
-  const now = new Date()
-  const year = now.getFullYear()
-  const countThisYear = await prisma.order.count({
-    where: {
-      createdAt: {
-        gte: new Date(`${year}-01-01T00:00:00.000Z`),
-        lt: new Date(`${year + 1}-01-01T00:00:00.000Z`),
-      },
-    },
-  })
-  const number = `${year}${(countThisYear + 1).toString().padStart(4, '0')}`
-  console.log('📦 Neue Ordernummer:', number)
-  return number
-}
-
 export async function handlePositionInventoryAndProduction(
   order: Order,
   pos: Position,
 ) {
-  const stockWithDesign = await getInventoryCount({
-    color: pos.color,
-    shirtSize: pos.shirtSize ?? undefined,
-    design: pos.design,
-    category: pos.productCategory,
-    typ: pos.typ?.[0],
-  })
+  const isStandardMaterial = pos.standardProductId != null
+
+  const stockWithDesign = await getInventoryCount(
+    {
+      color: pos.color,
+      shirtSize: pos.shirtSize ?? undefined,
+      design: pos.design,
+      category: pos.productCategory,
+      typ: pos.typ?.[0],
+    },
+    isStandardMaterial,
+  )
 
   let remaining = pos.amount - stockWithDesign.anzahl
 
@@ -42,12 +31,15 @@ export async function handlePositionInventoryAndProduction(
     await reserveFromStockWithDesign(order, pos, stockWithDesign, remaining)
   }
 
-  const stockWithoutDesign = await getInventoryCount({
-    color: pos.color,
-    shirtSize: pos.shirtSize ?? undefined,
-    category: pos.productCategory,
-    typ: pos.typ?.[0],
-  })
+  const stockWithoutDesign = await getInventoryCount(
+    {
+      color: pos.color,
+      shirtSize: pos.shirtSize ?? undefined,
+      category: pos.productCategory,
+      typ: pos.typ?.[0],
+    },
+    isStandardMaterial,
+  )
 
   const availableForPrint = Math.max(0, stockWithoutDesign.anzahl)
   if (availableForPrint > 0) {
@@ -57,13 +49,20 @@ export async function handlePositionInventoryAndProduction(
   }
 
   if (remaining > 0) {
-    const stockWhite = await getInventoryCount({
-      color: 'cmyk(0%,0%,0%,0%)',
-      shirtSize: pos.shirtSize ?? undefined,
-      category: pos.productCategory,
-      typ: pos.typ?.[0],
-    })
-    await triggerDyeAndPrintProduction(pos, remaining, stockWhite.material_ID)
+    const stockWhite = await getInventoryCount(
+      {
+        color: 'cmyk(0%,0%,0%,0%)',
+        shirtSize: pos.shirtSize ?? undefined,
+        category: pos.productCategory,
+        typ: pos.typ?.[0],
+      },
+      isStandardMaterial,
+    )
+    await triggerDyeAndPrintProduction(
+      pos,
+      remaining,
+      stockWithDesign.material_ID,
+    )
   }
 }
 
