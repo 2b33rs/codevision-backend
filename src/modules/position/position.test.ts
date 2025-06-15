@@ -164,8 +164,7 @@ describe('Position Routes', () => {
       payload: { status: 'COMPLETED' as POSITION_STATUS },
     })
 
-    expect(res.statusCode).toBe(200)
-    expect(res.body).toBe(`Updated position status successfully to COMPLETED`)
+    expect(res.statusCode).toBe(204)
 
     const updatedPos = await prisma.position.findUniqueOrThrow({
       where: { id: pos.id },
@@ -189,8 +188,7 @@ describe('Position Routes', () => {
       payload: { status: 'COMPLETED' as POSITION_STATUS },
     })
 
-    expect(res.statusCode).toBe(200)
-    expect(res.body).toBe(`Updated position status successfully to COMPLETED`)
+    expect(res.statusCode).toBe(204)
 
     const updated = await prisma.productionOrder.findUniqueOrThrow({
       where: { id: prodOrder.id },
