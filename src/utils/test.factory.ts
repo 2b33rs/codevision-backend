@@ -31,7 +31,7 @@ export async function makePosition(orderId: string, overrides: any = {}) {
       amount: 1,
       price: '9.99',
       name: `TestPosition-${randomUUID()}`,
-      productCategory: 'T_SHIRT',
+      productCategory: 'T-Shirt',
       design: 'TestDesign',
       color: 'cmyk(0%,0%,0%,0%)',
       shirtSize: 'M',
@@ -57,7 +57,7 @@ export async function makeProduct(overrides: any = {}) {
   return prisma.standardProduct.create({
     data: {
       name: `TestProduct-${randomUUID()}`,
-      productCategory: 'T_SHIRT',
+      productCategory: 'T-Shirt',
       minAmount: 1,
       color: 'cmyk(0%,0%,0%,0%)',
       shirtSize: 'M',

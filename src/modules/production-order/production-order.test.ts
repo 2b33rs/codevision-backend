@@ -13,7 +13,7 @@ describe('POST /production/:positionId/production-order', () => {
       amount: 100,
       pos_number: 1,
       name: 'Test Shirt',
-      productCategory: 'T_SHIRT',
+      productCategory: 'T-Shirt',
       design: 'TestDesign',
       color: 'cmyk(10%,20%,30%,40%)',
       shirtSize: 'L',

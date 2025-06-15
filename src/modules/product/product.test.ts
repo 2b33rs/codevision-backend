@@ -70,7 +70,7 @@ describe('Product Routes – vollständige Abdeckung', () => {
       url: `/product/${product.id}`,
       payload: {
         name: 'Updated Name',
-        productCategory: 'T_SHIRT',
+        productCategory: 'T-Shirt',
         minAmount: 1,
       },
     })

@@ -25,10 +25,10 @@ describe('Position Service Unit Tests', () => {
     const pos = await createPosition(
       order.id,
       7,
-      '9.99',              // new price parameter as string
+      '9.99', // new price parameter as string
       1,
       'Super T-Shirt',
-      'T_SHIRT',
+      'T-Shirt',
       'DesignCool',
       'cmyk(10%,20%,30%,40%)',
       'M',
@@ -37,7 +37,7 @@ describe('Position Service Unit Tests', () => {
 
     expect(pos).toHaveProperty('id')
     expect(pos.amount).toBe(7)
-    expect(pos.price.toString()).toBe('9.99')           // assert price
+    expect(pos.price.toString()).toBe('9.99') // assert price
     expect(pos.name).toBe('Super T-Shirt')
     expect(pos.design).toBe('DesignCool')
     expect(pos.color).toBe('cmyk(10%,20%,30%,40%)')
@@ -53,7 +53,7 @@ describe('Position Service Unit Tests', () => {
     const product = await prisma.standardProduct.create({
       data: {
         name: 'Produkt für Status-Test',
-        productCategory: 'T_SHIRT',
+        productCategory: 'T-Shirt',
         minAmount: 1,
         color: 'cmyk(1%,1%,1%,1%)',
         shirtSize: 'M',
@@ -65,7 +65,7 @@ describe('Position Service Unit Tests', () => {
       pos_number: 2,
       amount: 3,
       name: 'Status-Test-Posi',
-      productCategory: 'T_SHIRT',
+      productCategory: 'T-Shirt',
       design: 'DesignA',
       color: 'cmyk(1%,1%,1%,1%)',
       shirtSize: 'M',
@@ -116,10 +116,10 @@ describe('Position Routes', () => {
     const payload = {
       orderId: order.id,
       amount: 4,
-      price: '12.50',             // include new price field
+      price: '12.50', // include new price field
       pos_number: 1,
       name: 'Test Shirt',
-      productCategory: 'T_SHIRT' as ProductCategory,
+      productCategory: 'T-Shirt' as ProductCategory,
       design: 'TestDesign',
       color: 'cmyk(10%,20%,30%,40%)',
       shirtSize: 'L' as ShirtSize,
@@ -138,10 +138,10 @@ describe('Position Routes', () => {
     expect(body).toMatchObject({
       orderId: order.id,
       amount: 4,
-      price: '12.5',             // assert price in response
+      price: '12.5', // assert price in response
       pos_number: 1,
       name: 'Test Shirt',
-      productCategory: 'T_SHIRT',
+      productCategory: 'T-Shirt',
       design: 'TestDesign',
       color: 'cmyk(10%,20%,30%,40%)',
       shirtSize: 'L',
@@ -234,4 +234,3 @@ describe('Position Routes', () => {
     }
   })
 })
-

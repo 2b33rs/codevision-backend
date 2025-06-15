@@ -34,10 +34,12 @@ export const positionCreateSchema = z.object({
     orderId: z.string().uuid(),
     description: z.string().optional().nullable(),
     amount: z.number().int().positive(),
-    price: z.string().regex(/^\d+(\.\d{1,2})?$/, { message: 'Invalid price format' }),
+    price: z
+      .string()
+      .regex(/^\d+(\.\d{1,2})?$/, { message: 'Invalid price format' }),
     pos_number: z.number().int().positive(),
     name: z.string(),
-    productCategory: z.enum(['T_SHIRT']),
+    productCategory: z.enum(['T-Shirt']),
     design: z.string(),
     color: z
       .string()
@@ -74,10 +76,12 @@ export const positionResponseSchema = z.object({
   id: z.string().uuid(),
   orderId: z.string().uuid(),
   amount: z.number().int().positive(),
-  price: z.string().regex(/^\d+(\.\d{1,2})?$/, { message: 'Invalid price format' }),
+  price: z
+    .string()
+    .regex(/^\d+(\.\d{1,2})?$/, { message: 'Invalid price format' }),
   pos_number: z.number().int().positive(),
   name: z.string(),
-  productCategory: z.enum(['T_SHIRT']),
+  productCategory: z.enum(['T-Shirt']),
   design: z.string(),
   color: z.string(),
   shirtSize: z.enum(['S', 'M', 'L', 'XL']),
