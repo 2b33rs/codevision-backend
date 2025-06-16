@@ -88,7 +88,7 @@ CREATE TABLE "ProductionOrder" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
-    "positionId" TEXT NOT NULL,
+    "positionId" TEXT,
     "amount" INTEGER NOT NULL,
     "designUrl" TEXT NOT NULL,
     "orderType" TEXT NOT NULL,
@@ -150,6 +150,10 @@ ALTER TABLE "Order"
 -- AddForeignKey
 ALTER TABLE "Position"
     ADD CONSTRAINT "Position_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order" ("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ProductionOrder"
+    ADD CONSTRAINT "ProductionOrder_positionId_fkey" FOREIGN KEY ("positionId") REFERENCES "Position" ("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Complaint"

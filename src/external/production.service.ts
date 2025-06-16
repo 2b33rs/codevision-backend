@@ -32,10 +32,6 @@ export async function sendProductionOrder(
     include: { order: true },
   })
 
-  if (!position || !position.order) {
-    throw new Error('Position oder zugehörige Order nicht gefunden.')
-  }
-
   const rawOrderId = position.order.orderNumber.toString()
   const rawPosNumber = position.pos_number.toString()
   const rawProductionorderNumber =
