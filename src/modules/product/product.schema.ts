@@ -29,7 +29,7 @@ export const updateProductZ = createProductZ.partial()
 
 // ✅ erweitert: alle relevanten Felder für einen Produktionsauftrag
 export const createProductionOrderZ = z.object({
-  positionId: z.string().uuid(), // ✅ optional, da aus URL gezogen
+  positionId: z.string().uuid().optional(), // ✅ optional, da aus URL gezogen
   amount: z.number().int().positive(),
   designUrl: z.string().url().optional(),
   orderType: z.string().optional(),
