@@ -15,6 +15,7 @@ export const standardProductZ = z.object({
   minAmount: z.number(),
   currentStock: z.number(),
   typ: z.array(z.string()),
+  positions: z.array(z.any()).optional(),
 })
 
 export const createProductZ = standardProductZ.omit({

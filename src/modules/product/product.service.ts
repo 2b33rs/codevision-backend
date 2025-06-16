@@ -14,7 +14,36 @@ export async function create(
   try {
     console.log('🧪 Create payload:', req.body) // <--- NEU
     const product = await prisma.standardProduct.create({ data: req.body })
-    res.send(product)
+
+    // Get inventory count
+    const inventoryCountResponse = await getInventoryCount(
+      {
+        design: null,
+        category: product.productCategory,
+        typ: product.typ?.[0],
+        color: product.color,
+        shirtSize: product.shirtSize as ShirtSize,
+      },
+      true,
+    )
+    const currentStock = inventoryCountResponse.anzahl
+
+    // Get related positions for this product (will be empty for a new product)
+    const positions = await prisma.position.findMany({
+      where: {
+        standardProductId: product.id,
+        deletedAt: null,
+      },
+      include: {
+        order: true,
+      },
+    });
+
+    res.send({
+      ...product,
+      currentStock,
+      positions,
+    })
   } catch (err) {
     console.error('❌ Create product failed:', JSON.stringify(err, null, 2))
     res.status(500).send({ error: 'Internal Server Error' })
@@ -43,9 +72,22 @@ export async function read(
   ) // Immer true für StandardProducts
 
   const currentStock = inventoryCountResponse.anzahl
+
+  // Get related positions for this product
+  const positions = await prisma.position.findMany({
+    where: {
+      standardProductId: product.id,
+      deletedAt: null,
+    },
+    include: {
+      order: true,
+    },
+  });
+
   res.send({
     ...product,
     currentStock,
+    positions,
   })
 }
 
@@ -76,7 +118,7 @@ export async function list(
   }
 
   const enriched = await Promise.all(
-    products.map(async (product: any) => {
+    products.map(async (product: StandardProduct) => {
       const inventoryCountResponse = await getInventoryCount(
         {
           design: null,
@@ -91,10 +133,22 @@ export async function list(
       const restbestand =
         currentStock + product.amountInProduction - product.minAmount
 
+      // Get related positions for this product
+      const positions = await prisma.position.findMany({
+        where: {
+          standardProductId: product.id,
+          deletedAt: null,
+        },
+        include: {
+          order: true,
+        },
+      });
+
       return {
         ...product,
         currentStock,
         restbestand,
+        positions,
       }
     }),
   )
@@ -118,7 +172,36 @@ export async function update(
     where: { id },
     data: body,
   })
-  res.send(updated)
+
+  // Get inventory count
+  const inventoryCountResponse = await getInventoryCount(
+    {
+      design: null,
+      category: updated.productCategory,
+      typ: updated.typ?.[0],
+      color: updated.color,
+      shirtSize: updated.shirtSize as ShirtSize,
+    },
+    true,
+  )
+  const currentStock = inventoryCountResponse.anzahl
+
+  // Get related positions for this product
+  const positions = await prisma.position.findMany({
+    where: {
+      standardProductId: updated.id,
+      deletedAt: null,
+    },
+    include: {
+      order: true,
+    },
+  });
+
+  res.send({
+    ...updated,
+    currentStock,
+    positions,
+  })
 }
 
 export async function remove(
@@ -130,5 +213,34 @@ export async function remove(
     where: { id },
     data: { deletedAt: new Date() },
   })
-  res.send(deleted)
+
+  // Get inventory count
+  const inventoryCountResponse = await getInventoryCount(
+    {
+      design: null,
+      category: deleted.productCategory,
+      typ: deleted.typ?.[0],
+      color: deleted.color,
+      shirtSize: deleted.shirtSize as ShirtSize,
+    },
+    true,
+  )
+  const currentStock = inventoryCountResponse.anzahl
+
+  // Get related positions for this product
+  const positions = await prisma.position.findMany({
+    where: {
+      standardProductId: deleted.id,
+      deletedAt: null,
+    },
+    include: {
+      order: true,
+    },
+  });
+
+  res.send({
+    ...deleted,
+    currentStock,
+    positions,
+  })
 }

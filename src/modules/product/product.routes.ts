@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { create, list, read, remove, update } from './product.service'
 import { schemas } from './product.schema'
-import { createProductionOrder } from '../production-order/production-order.service'
+import { createOrderForProduct } from '../order/order.service'
 
 export default async function productRoutes(fastify: FastifyInstance) {
   fastify.post('/', {
@@ -72,7 +72,7 @@ export default async function productRoutes(fastify: FastifyInstance) {
     handler: remove,
   })
 
-  fastify.post('/:id/production-order', {
+  fastify.post<{ Params: { id: string }, Body: { amount: number } }>('/:id/production-order', {
     schema: {
       tags: ['Product'],
       description: 'Erstellt einen Produktionsauftrag für ein Produkt',
@@ -82,6 +82,29 @@ export default async function productRoutes(fastify: FastifyInstance) {
         200: schemas.productionOrderResponse,
       },
     },
-    handler: createProductionOrder,
+    async handler(request, reply) {
+      try {
+        const productId = request.params.id
+        const { amount } = request.body
+
+        // Create an order without a customer for this product
+        const order = await createOrderForProduct(productId, amount)
+
+        // Format the response to match the expected schema
+        reply.send({
+          status: 'ok',
+          message: `Produktionsauftrag für ${amount} Stück wurde erstellt`,
+          productId,
+          amount,
+        })
+      } catch (error) {
+        console.error('Error creating order for product:', error)
+        if (error instanceof Error) {
+          reply.status(500).send({ error: error.message })
+        } else {
+          reply.status(500).send({ error: 'An unknown error occurred' })
+        }
+      }
+    },
   })
 }

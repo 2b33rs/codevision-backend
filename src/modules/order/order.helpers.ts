@@ -97,18 +97,25 @@ export async function triggerPrintProduction(
   if (amount <= 0) return
 
   console.log(`🖨️ Produktionsauftrag BEDRUCKEN: Menge=${amount}`)
+  // Ensure materialId is a number (default to 0 if null)
+  const materialIdNumber = materialId ?? 0
   await createProductionOrder({
     positionId: pos.id,
     amount,
     designUrl: pos.design,
     orderType: 'STANDARD',
     dyeingNecessary: false,
-    materialId,
+    materialId: materialIdNumber,
     productTemplate: {
       kategorie: pos.productCategory,
-      artikelnummer: materialId ?? '',
-      groesse: pos.shirtSize,
-      farbcode: parseCMYKForMawi(pos.color) ?? {},
+      artikelnummer: materialIdNumber, // Use number instead of string
+      groesse: pos.shirtSize ?? '', // Ensure it's not null
+      farbcode: parseCMYKForMawi(pos.color) ?? {
+        cyan: 0,
+        magenta: 0,
+        yellow: 0,
+        black: 0,
+      },
       typ: pos.typ?.[0],
     },
     Status: 'ORDER_RECEIVED',
@@ -128,18 +135,25 @@ export async function triggerDyeAndPrintProduction(
   materialId: number | null,
 ) {
   console.log(`🎨 Produktionsauftrag FAERBEN_UND_BEDRUCKEN: Menge=${amount}`)
+  // Ensure materialId is a number (default to 0 if null)
+  const materialIdNumber = materialId ?? 0
   await createProductionOrder({
     positionId: pos.id,
     amount,
     designUrl: pos.design,
     orderType: 'STANDARD',
     dyeingNecessary: true,
-    materialId,
+    materialId: materialIdNumber,
     productTemplate: {
       kategorie: pos.productCategory,
-      artikelnummer: materialId ?? '',
-      groesse: pos.shirtSize,
-      farbcode: parseCMYKForMawi(pos.color) ?? {},
+      artikelnummer: materialIdNumber, // Use number instead of string
+      groesse: pos.shirtSize ?? '', // Ensure it's not null
+      farbcode: parseCMYKForMawi(pos.color) ?? {
+        cyan: 0,
+        magenta: 0,
+        yellow: 0,
+        black: 0,
+      },
       typ: pos.typ?.[0],
     },
     Status: 'ORDER_RECEIVED',

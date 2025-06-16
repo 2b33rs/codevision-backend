@@ -4,12 +4,15 @@ import {
   ProductionOrder,
 } from '../../../generated/prisma'
 import { prisma } from '../../plugins/prisma'
-import { createProductionOrderZ } from './production-order.schema'
 import { sendProductionOrder } from '../../external/production.service'
+import { 
+  CreateProductionOrderForPosition, 
+  createProductionOrderForPositionZ 
+} from './production-order-input.schema'
 
-export async function createProductionOrder(input: unknown) {
+export async function createProductionOrder(input: CreateProductionOrderForPosition) {
   // Input validieren und parsen
-  const parsed = createProductionOrderZ.parse(input)
+  const parsed = createProductionOrderForPositionZ.parse(input)
 
   if (!parsed.positionId) {
     throw new Error('positionId darf nicht undefined sein.')

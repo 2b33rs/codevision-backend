@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { app } from '../../vitest.setup'
-import { makeCustomer, makeOrder, makePosition } from '../../utils/test.factory'
-import { createOrder } from './order.service'
+import { makeCustomer, makeOrder, makePosition, makeProduct } from '../../utils/test.factory'
+import { createOrder, createOrderForProduct } from './order.service'
 import { setTimeout } from 'timers/promises'
 import { PositionInput } from './order.schema'
 import {
@@ -12,6 +12,40 @@ import {
 } from './order.repo'
 
 describe('Order Service Unit Tests (mit Positionen)', () => {
+  it('should create an order for a product without a customer', async () => {
+    // Create a product
+    const product = await makeProduct({
+      name: 'Test Product for Order',
+      productCategory: 'T-Shirt',
+      minAmount: 5,
+      color: 'cmyk(0%,0%,0%,0%)',
+      shirtSize: 'M',
+      typ: ['T-Shirt'],
+    })
+
+    // Create an order for the product without a customer
+    const amount = 3
+    const order = await createOrderForProduct(product.id, amount)
+
+    // Verify the order
+    expect(order).toHaveProperty('id')
+    expect(order.orderNumber).toMatch(/^\d{8}$/)
+    expect(order).not.toHaveProperty('customerId')
+
+    // Verify the position
+    expect(order.positions).toHaveLength(1)
+    const position = order.positions[0]
+    expect(position.amount).toBe(amount)
+    expect(position.name).toBe(product.name)
+    expect(position.productCategory).toBe(product.productCategory)
+    expect(position.standardProductId).toBe(product.id)
+    expect(position.Status).toBe('IN_PROGRESS')
+
+    // Verify production orders
+    expect(position.productionOrders).toBeDefined()
+    expect(Array.isArray(position.productionOrders)).toBe(true)
+  })
+
   it('should create a new order with positions and incremented order number', async () => {
     const customer = await makeCustomer()
 
