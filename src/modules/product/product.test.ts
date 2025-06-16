@@ -73,14 +73,14 @@ describe('Product Routes – vollständige Abdeckung', () => {
     const list = res.json()
     expect(Array.isArray(list)).toBe(true)
     expect(list.length).toBeGreaterThanOrEqual(1)
-    // Check that each product has a positions property that is an array
+    // Check that each product has an orders property that is an array
     list.forEach((product: any) => {
-      expect(product).toHaveProperty('positions')
-      expect(Array.isArray(product.positions)).toBe(true)
+      expect(product).toHaveProperty('orders')
+      expect(Array.isArray(product.orders)).toBe(true)
     })
   })
 
-  it('GET    /product                      – list products with related positions', async () => {
+  it('GET    /product                      – list products with related order', async () => {
     // Create a product
     const product = await makeProduct({
       name: 'List Test With Positions',
@@ -118,13 +118,17 @@ describe('Product Routes – vollständige Abdeckung', () => {
     const foundProduct = list.find((p: any) => p.id === product.id)
     expect(foundProduct).toBeDefined()
 
-    // Verify that the product has the related position
-    expect(foundProduct).toHaveProperty('positions')
-    expect(Array.isArray(foundProduct.positions)).toBe(true)
-    expect(foundProduct.positions.length).toBe(1)
-    expect(foundProduct.positions[0].standardProductId).toBe(product.id)
-    expect(foundProduct.positions[0].order).toBeDefined()
-    expect(foundProduct.positions[0].order.id).toBe(order.id)
+    // Verify that the product has the related orders
+    expect(foundProduct).toHaveProperty('orders')
+    expect(Array.isArray(foundProduct.orders)).toBe(true)
+    expect(foundProduct.orders.length).toBe(1)
+    expect(foundProduct.orders[0].id).toBe(order.id)
+
+    // Verify that the order has the position
+    expect(foundProduct.orders[0].positions).toBeDefined()
+    expect(Array.isArray(foundProduct.orders[0].positions)).toBe(true)
+    expect(foundProduct.orders[0].positions.length).toBe(1)
+    expect(foundProduct.orders[0].positions[0].standardProductId).toBe(product.id)
   })
 
   it('GET    /product/:id                  – get a single product by id', async () => {
@@ -140,11 +144,11 @@ describe('Product Routes – vollständige Abdeckung', () => {
     const body = res.json()
     expect(body.name).toBe('Single Get')
     expect(body).toHaveProperty('currentStock')
-    expect(body).toHaveProperty('positions')
-    expect(Array.isArray(body.positions)).toBe(true)
+    expect(body).toHaveProperty('orders')
+    expect(Array.isArray(body.orders)).toBe(true)
   })
 
-  it('GET    /product/:id                  – get a product with related positions', async () => {
+  it('GET    /product/:id                  – get a product with related order', async () => {
     // Create a product
     const product = await makeProduct({
       name: 'Product With Positions',
@@ -181,13 +185,16 @@ describe('Product Routes – vollständige Abdeckung', () => {
     expect(res.statusCode).toBe(200)
     const body = res.json()
 
-    // Verify that the product has the related position
-    expect(body).toHaveProperty('positions')
-    expect(Array.isArray(body.positions)).toBe(true)
-    expect(body.positions.length).toBe(1)
-    expect(body.positions[0].standardProductId).toBe(product.id)
-    expect(body.positions[0].order).toBeDefined()
-    expect(body.positions[0].order.id).toBe(order.id)
+    // Verify that the product has the related order
+    expect(body).toHaveProperty('order')
+    expect(body.order).toBeDefined()
+    expect(body.order.id).toBe(order.id)
+
+    // Verify that the order has the position
+    expect(body.order.positions).toBeDefined()
+    expect(Array.isArray(body.order.positions)).toBe(true)
+    expect(body.order.positions.length).toBe(1)
+    expect(body.order.positions[0].standardProductId).toBe(product.id)
   })
 
   it('PUT    /product/:id                  – update a product', async () => {

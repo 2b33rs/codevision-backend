@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
+import { orderResponseZ } from '../order/order.schema'
 
 export const idParam = z.object({ id: z.string().uuid() })
 
@@ -15,7 +16,7 @@ export const standardProductZ = z.object({
   minAmount: z.number(),
   currentStock: z.number(),
   typ: z.array(z.string()),
-  positions: z.array(z.any()).optional(),
+  orders: z.array(orderResponseZ).optional(),
 })
 
 export const createProductZ = standardProductZ.omit({

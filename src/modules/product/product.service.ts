@@ -36,13 +36,35 @@ export async function create(
       },
       include: {
         order: true,
+        productionOrders: true,
       },
-    });
+    })
+
+    // Group positions by order
+    const orderMap = new Map()
+    positions.forEach((position) => {
+      if (position.order) {
+        if (!orderMap.has(position.order.id)) {
+          orderMap.set(position.order.id, {
+            ...position.order,
+            positions: [],
+          })
+        }
+        // Add position to the order
+        orderMap.get(position.order.id).positions.push(position)
+      }
+    })
+
+    // Convert map to array
+    const orders = orderMap.size > 0 ? Array.from(orderMap.values()) : []
+
+    // Sort orders by creation date (newest first)
+    orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
     res.send({
       ...product,
       currentStock,
-      positions,
+      orders,
     })
   } catch (err) {
     console.error('❌ Create product failed:', JSON.stringify(err, null, 2))
@@ -81,13 +103,35 @@ export async function read(
     },
     include: {
       order: true,
+      productionOrders: true,
     },
-  });
+  })
+
+  // Group positions by order
+  const orderMap = new Map()
+  positions.forEach((position) => {
+    if (position.order) {
+      if (!orderMap.has(position.order.id)) {
+        orderMap.set(position.order.id, {
+          ...position.order,
+          positions: [],
+        })
+      }
+      // Add position to the order
+      orderMap.get(position.order.id).positions.push(position)
+    }
+  })
+
+  // Convert map to array
+  const orders = orderMap.size > 0 ? Array.from(orderMap.values()) : []
+
+  // Sort orders by creation date (newest first)
+  orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
   res.send({
     ...product,
     currentStock,
-    positions,
+    orders,
   })
 }
 
@@ -141,14 +185,36 @@ export async function list(
         },
         include: {
           order: true,
+          productionOrders: true,
         },
-      });
+      })
+
+      // Group positions by order
+      const orderMap = new Map()
+      positions.forEach((position) => {
+        if (position.order) {
+          if (!orderMap.has(position.order.id)) {
+            orderMap.set(position.order.id, {
+              ...position.order,
+              positions: [],
+            })
+          }
+          // Add position to the order
+          orderMap.get(position.order.id).positions.push(position)
+        }
+      })
+
+      // Convert map to array
+      const orders = orderMap.size > 0 ? Array.from(orderMap.values()) : []
+
+      // Sort orders by creation date (newest first)
+      orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
       return {
         ...product,
         currentStock,
         restbestand,
-        positions,
+        orders,
       }
     }),
   )
@@ -194,13 +260,35 @@ export async function update(
     },
     include: {
       order: true,
+      productionOrders: true,
     },
-  });
+  })
+
+  // Group positions by order
+  const orderMap = new Map()
+  positions.forEach((position) => {
+    if (position.order) {
+      if (!orderMap.has(position.order.id)) {
+        orderMap.set(position.order.id, {
+          ...position.order,
+          positions: [],
+        })
+      }
+      // Add position to the order
+      orderMap.get(position.order.id).positions.push(position)
+    }
+  })
+
+  // Convert map to array
+  const orders = orderMap.size > 0 ? Array.from(orderMap.values()) : []
+
+  // Sort orders by creation date (newest first)
+  orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
   res.send({
     ...updated,
     currentStock,
-    positions,
+    orders,
   })
 }
 
@@ -235,12 +323,34 @@ export async function remove(
     },
     include: {
       order: true,
+      productionOrders: true,
     },
-  });
+  })
+
+  // Group positions by order
+  const orderMap = new Map()
+  positions.forEach((position) => {
+    if (position.order) {
+      if (!orderMap.has(position.order.id)) {
+        orderMap.set(position.order.id, {
+          ...position.order,
+          positions: [],
+        })
+      }
+      // Add position to the order
+      orderMap.get(position.order.id).positions.push(position)
+    }
+  })
+
+  // Convert map to array
+  const orders = orderMap.size > 0 ? Array.from(orderMap.values()) : []
+
+  // Sort orders by creation date (newest first)
+  orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
   res.send({
     ...deleted,
     currentStock,
-    positions,
+    orders,
   })
 }
