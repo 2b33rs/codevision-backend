@@ -1,7 +1,17 @@
 import { FastifyReply, FastifyRequest } from 'fastify'
 import { prisma } from '../../plugins/prisma'
-import { Prisma, ShirtSize, StandardProduct } from '../../../generated/prisma'
+import {
+  $Enums,
+  Prisma,
+  ShirtSize,
+  StandardProduct,
+} from '../../../generated/prisma'
 import { getInventoryCount } from '../../external/mawi.service'
+import { sendProductionOrder } from '../../external/production.service'
+import { parseCmykString } from '../../utils/color.util'
+import { createProductionOrder } from '../production-order/production-order.service'
+import { z } from 'zod'
+import { productTemplateZ } from '../production-order/production-order.schema'
 
 type IdParam = { id: string }
 type CreateBody = Prisma.StandardProductCreateInput
@@ -63,13 +73,16 @@ export async function list(
   } else {
     products = (await prisma.$queryRawUnsafe(
       `
-        SELECT * FROM "StandardProduct"
+        SELECT *
+        FROM "StandardProduct"
         WHERE "deletedAt" IS NULL
-        AND to_tsvector('simple',
-          coalesce("name", '') || ' ' ||
-          coalesce("color", '') || ' ' ||
-          coalesce("shirtSize"::text, '')
-        ) @@ plainto_tsquery('simple', $1)
+          AND to_tsvector('simple',
+                          coalesce("name", '') || ' ' ||
+                          coalesce("color", '') || ' ' ||
+                          coalesce("shirtSize"::text, '')
+              ) @
+          @ plainto_tsquery('simple'
+            , $1)
       `,
       query,
     )) as StandardProduct[]
@@ -131,4 +144,63 @@ export async function remove(
     data: { deletedAt: new Date() },
   })
   res.send(deleted)
+}
+
+export async function createProductionOrderFromProductId(
+  productId: string,
+  amount: number,
+) {
+  if (!productId || !amount || amount <= 0) {
+    throw new Error(
+      'Ungültige Eingabe: productId und positiver amount sind erforderlich.',
+    )
+  }
+
+  const product = await prisma.standardProduct.findUnique({
+    where: { id: productId },
+  })
+
+  if (!product) {
+    throw new Error(`Kein Produkt mit der ID ${productId} gefunden.`)
+  }
+
+  const invCount = await getInventoryCount({
+    category: product.productCategory,
+    design: null,
+    typ: product.typ[0],
+    color: product.color,
+    shirtSize: product.shirtSize ?? '',
+  })
+
+  const colorCode = parseCmykString(product.color)
+  const productTemplate = {
+    kategorie: product.productCategory,
+    groesse: product.shirtSize,
+    typ: product.typ?.[0] ?? '',
+    farbcode: {
+      cyan: colorCode?.cyan ?? '',
+      magenta: colorCode?.magenta ?? '',
+      yellow: colorCode?.yellow ?? '',
+      black: colorCode?.black ?? '',
+    },
+    artikelnummer: invCount.material_ID,
+  }
+
+  const productionOrder = await createProductionOrder({
+    amount: amount,
+    designUrl: '',
+    orderType: 'STANDARD',
+    dyeingNecessary: product.color !== 'cmyk(0%,0%,0%,0%)',
+    materialId: invCount.material_ID, // <-- Pflichtfeld!
+    productTemplate,
+    Status: 'ORDER_RECEIVED',
+  })
+
+  await sendProductionOrder(productionOrder.productionOrder)
+
+  return {
+    status: 'ok' as const,
+    message: `Produktionsauftrag #${productionOrder.productionOrder.id} über ${amount} Stück erstellt`,
+    productionOrder,
+  }
 }

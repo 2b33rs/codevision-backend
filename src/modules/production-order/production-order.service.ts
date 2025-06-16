@@ -11,16 +11,13 @@ export async function createProductionOrder(input: unknown) {
   // Input validieren und parsen
   const parsed = createProductionOrderZ.parse(input)
 
-  if (!parsed.positionId) {
-    throw new Error('positionId darf nicht undefined sein.')
-  }
   if (!parsed.materialId) {
     throw new Error('materialId darf nicht undefined sein.')
   }
 
   // Produktionsauftrag anlegen, jetzt mit materialId
   const currentCount = await prisma.productionOrder.count({
-    where: { positionId: parsed.positionId },
+    where: { positionId: parsed.positionId || null },
   })
   const nextNumber = currentCount + 1
 
@@ -33,7 +30,7 @@ export async function createProductionOrder(input: unknown) {
   // ProductionOrder in der DB anlegen
   const productionOrder = await prisma.productionOrder.create({
     data: {
-      positionId: parsed.positionId,
+      positionId: parsed.positionId || null, // Explizit null setzen wenn undefined
       amount: parsed.amount,
       designUrl: parsed.designUrl,
       orderType: parsed.orderType,
@@ -47,8 +44,14 @@ export async function createProductionOrder(input: unknown) {
 
   console.log(productionOrder)
 
-  // An Produktions-API senden
-  await sendProductionOrder(productionOrder)
+  // An Produktions-API senden nur wenn positionId vorhanden ist
+  if (productionOrder.positionId) {
+    await sendProductionOrder(productionOrder)
+  } else {
+    console.log(
+      'Produktionsauftrag ohne Position erstellt - kein API-Call an Produktions-Service',
+    )
+  }
 
   return {
     status: 'ok' as const,
