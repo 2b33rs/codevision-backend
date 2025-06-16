@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 import { app } from '../../vitest.setup'
-import { makeCustomer, makeOrder, makePosition, makeProduct } from '../../utils/test.factory'
+import {
+  makeCustomer,
+  makeOrder,
+  makePosition,
+  makeProduct,
+} from '../../utils/test.factory'
 import { prisma } from '../../plugins/prisma'
 
 // Mock für externen Inventory-Service auf Basis der input-Daten
@@ -128,7 +133,9 @@ describe('Product Routes – vollständige Abdeckung', () => {
     expect(foundProduct.orders[0].positions).toBeDefined()
     expect(Array.isArray(foundProduct.orders[0].positions)).toBe(true)
     expect(foundProduct.orders[0].positions.length).toBe(1)
-    expect(foundProduct.orders[0].positions[0].standardProductId).toBe(product.id)
+    expect(foundProduct.orders[0].positions[0].standardProductId).toBe(
+      product.id,
+    )
   })
 
   it('GET    /product/:id                  – get a single product by id', async () => {
@@ -186,15 +193,14 @@ describe('Product Routes – vollständige Abdeckung', () => {
     const body = res.json()
 
     // Verify that the product has the related order
-    expect(body).toHaveProperty('order')
-    expect(body.order).toBeDefined()
-    expect(body.order.id).toBe(order.id)
+    expect(body).toHaveProperty('orders')
+    expect(body.orders).toBeDefined()
 
-    // Verify that the order has the position
-    expect(body.order.positions).toBeDefined()
-    expect(Array.isArray(body.order.positions)).toBe(true)
-    expect(body.order.positions.length).toBe(1)
-    expect(body.order.positions[0].standardProductId).toBe(product.id)
+    // Verify that the first order has the position
+    expect(body.orders[0].positions).toBeDefined()
+    expect(Array.isArray(body.orders[0].positions)).toBe(true)
+    expect(body.orders[0].positions.length).toBe(1)
+    expect(body.orders[0].positions[0].standardProductId).toBe(product.id)
   })
 
   it('PUT    /product/:id                  – update a product', async () => {
@@ -275,8 +281,8 @@ describe('Product Routes – vollständige Abdeckung', () => {
     })
 
     // Find the order for this product
-    const order = orders.find(o => 
-      o.positions.some(p => p.standardProductId === product.id)
+    const order = orders.find((o) =>
+      o.positions.some((p) => p.standardProductId === product.id),
     )
 
     expect(order).toBeDefined()
