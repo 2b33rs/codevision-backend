@@ -27,15 +27,31 @@ export const createProductZ = standardProductZ.omit({
 
 export const updateProductZ = createProductZ.partial()
 
+// ✅ erweitert: alle relevanten Felder für einen Produktionsauftrag
 export const createProductionOrderZ = z.object({
+  positionId: z.string().uuid(), // ✅ optional, da aus URL gezogen
   amount: z.number().int().positive(),
+  designUrl: z.string().url().optional(),
+  orderType: z.string().optional(),
+  dyeingNecessary: z.boolean().optional(),
+  materialId: z.number().int(),
+  productTemplate: z.object({
+    kategorie: z.string(),
+    groesse: z.string(),
+    typ: z.string(),
+    farbcode: z.object({
+      cyan: z.number().min(0).max(100),
+      magenta: z.number().min(0).max(100),
+      yellow: z.number().min(0).max(100),
+      black: z.number().min(0).max(100),
+    }),
+  }),
 })
 
 export const productionOrderResponseZ = z.object({
   status: z.literal('ok'),
   message: z.string(),
-  productId: z.string().uuid(),
-  amount: z.number(),
+  productionOrder: z.any(), // optional: z.object(...) für exakte Struktur
 })
 
 export const schemas = {
