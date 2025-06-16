@@ -75,18 +75,38 @@ export async function updatePositionStatusByBusinessKey(
     })
     if (!prodOrder) throw new Error('ProductionOrder not found')
 
-    // Status-Update
-    return updateProductionOrderStatus(
+    // Status-Update der ProductionOrder
+    const updatedProdOrder = await updateProductionOrderStatus(
       prodOrder.id,
       status as PRODUCTION_ORDER_STATUS,
     )
+
+    if (status === PRODUCTION_ORDER_STATUS.READY_FOR_PICKUP) {
+      const allProductionOrders = await getProductionOrdersByPositionId(
+        position.id,
+      )
+
+      // Prüfen, ob alle ProductionOrders READY_FOR_PICKUP sind
+      const allReadyForPickup = allProductionOrders.every(
+        (order) => order.Status === PRODUCTION_ORDER_STATUS.READY_FOR_PICKUP,
+      )
+
+      if (allReadyForPickup && allProductionOrders.length > 0) {
+        // Position Status auf READY_FOR_PICKUP setzen
+        await prisma.position.update({
+          where: { id: position.id },
+          data: { Status: POSITION_STATUS.READY_FOR_PICKUP },
+        })
+      }
+    }
+
+    return updatedProdOrder
   }
 
   throw new Error(
     `Invalid compositeId format: ${compositeId}. Expected 2 or 3 parts.`,
   )
 }
-
 
 /**
  * Legt eine neue Position an.
