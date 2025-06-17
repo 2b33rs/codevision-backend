@@ -1,7 +1,7 @@
 CREATE TYPE "POSITION_STATUS" AS ENUM ('OPEN', 'IN_PROGRESS', 'READY_FOR_PICKUP', 'READY_FOR_SHIPMENT', 'OUTSOURCING_REQUESTED', 'READY_FOR_INSPECTION', 'INSPECTED', 'COMPLETED', 'CANCELLED');
 
 -- CreateEnum
-CREATE TYPE "PRODUCTION_ORDER_STATUS" AS ENUM ('ORDER_RECEIVED', 'AUTHORISED', 'DYEING', 'PRINTING', 'COMPLETED');
+CREATE TYPE "PRODUCTION_ORDER_STATUS" AS ENUM ('ORDER_RECEIVED', 'AUTHORISED', 'DYEING', 'PRINTING','READY_FOR_PICKUP', 'COMPLETED');
 
 -- CreateEnum
 CREATE TYPE "ComplaintReason" AS ENUM ('WRONG_SIZE', 'WRONG_COLOR', 'PRINT_INCORRECT', 'PRINT_OFF_CENTER', 'DAMAGED_ITEM', 'STAINED', 'LATE_DELIVERY', 'WRONG_PRODUCT', 'MISSING_ITEM', 'BAD_QUALITY', 'NOT_AS_DESCRIBED', 'CANCELLATION', 'OTHER');
@@ -72,7 +72,7 @@ CREATE TABLE "Position"
     "description"       TEXT,
     "Status"            "POSITION_STATUS" NOT NULL DEFAULT 'IN_PROGRESS',
     "amount"            INTEGER           NOT NULL,
-    "price"             DECIMAL(10,2)     NOT NULL DEFAULT 0.00,
+    "price"             DECIMAL(10, 2)    NOT NULL DEFAULT 0.00,
     "name"              TEXT              NOT NULL,
     "color"             TEXT,
     "shirtSize"         "ShirtSize",
@@ -83,20 +83,21 @@ CREATE TABLE "Position"
 );
 
 -- CreateTable
-CREATE TABLE "ProductionOrder" (
-    "id" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-    "deletedAt" TIMESTAMP(3),
-    "positionId" TEXT NOT NULL,
-    "amount" INTEGER NOT NULL,
-    "designUrl" TEXT NOT NULL,
-    "orderType" TEXT NOT NULL,
-    "dyeingNecessary" BOOLEAN NOT NULL,
-    "productTemplate" JSONB NOT NULL,
-    "materialId" INTEGER NOT NULL,
-    "Status" "PRODUCTION_ORDER_STATUS" NOT NULL,
-    "productionorder_number" INTEGER NOT NULL,
+CREATE TABLE "ProductionOrder"
+(
+    "id"                     TEXT                      NOT NULL,
+    "createdAt"              TIMESTAMP(3)              NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt"              TIMESTAMP(3)              NOT NULL,
+    "deletedAt"              TIMESTAMP(3),
+    "positionId"             TEXT                      NOT NULL,
+    "amount"                 INTEGER                   NOT NULL,
+    "designUrl"              TEXT                      NOT NULL,
+    "orderType"              TEXT                      NOT NULL,
+    "dyeingNecessary"        BOOLEAN                   NOT NULL,
+    "productTemplate"        JSONB                     NOT NULL,
+    "materialId"             INTEGER                   NOT NULL,
+    "Status"                 "PRODUCTION_ORDER_STATUS" NOT NULL,
+    "productionorder_number" INTEGER                   NOT NULL,
 
     CONSTRAINT "ProductionOrder_pkey" PRIMARY KEY ("id")
 );
