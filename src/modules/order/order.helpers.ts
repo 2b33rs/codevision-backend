@@ -26,11 +26,11 @@ export async function handlePositionInventoryAndProduction(
   )
 
   let remaining = pos.amount - stockWithDesign.anzahl
-
+/* Erstmal Reservierung weglassen
   if (stockWithDesign.anzahl > 0) {
     await reserveFromStockWithDesign(order, pos, stockWithDesign, remaining)
   }
-
+*/
   const stockWithoutDesign = await getInventoryCount(
     {
       color: pos.color,
@@ -44,7 +44,7 @@ export async function handlePositionInventoryAndProduction(
   const availableForPrint = Math.max(0, stockWithoutDesign.anzahl)
   if (availableForPrint > 0) {
     const toPrint = Math.min(remaining, availableForPrint)
-    await triggerPrintProduction(pos, toPrint, stockWithoutDesign.material_ID)
+    await triggerPrintProduction(pos, toPrint, stockWithDesign.material_ID)
     remaining -= toPrint
   }
 
