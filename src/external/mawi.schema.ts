@@ -6,6 +6,7 @@ export const getInventoryCountZ = z.object({
   shirtSize: z.string().optional(),
   color: z.string().nullable().optional(),
   typ: z.string().optional(),
+  name: z.string().optional(),
 })
 
 export type GetInventoryCountInput = z.infer<typeof getInventoryCountZ>

@@ -23,6 +23,7 @@ export async function create(
         typ: product.typ?.[0],
         color: product.color,
         shirtSize: product.shirtSize as ShirtSize,
+        name: product.name,
       },
       true,
     )
@@ -59,7 +60,10 @@ export async function create(
     const orders = orderMap.size > 0 ? Array.from(orderMap.values()) : []
 
     // Sort orders by creation date (newest first)
-    orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    orders.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )
 
     res.send({
       ...product,
@@ -89,6 +93,7 @@ export async function read(
       typ: product.typ?.[0],
       color: product.color,
       shirtSize: product.shirtSize as ShirtSize,
+      name: product.name,
     },
     true,
   ) // Immer true für StandardProducts
@@ -126,7 +131,9 @@ export async function read(
   const orders = orderMap.size > 0 ? Array.from(orderMap.values()) : []
 
   // Sort orders by creation date (newest first)
-  orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  orders.sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  )
 
   res.send({
     ...product,
@@ -170,6 +177,7 @@ export async function list(
           typ: product.typ?.[0],
           color: product.color,
           shirtSize: product.shirtSize as ShirtSize,
+          name: product.name,
         },
         true,
       ) // Immer true für StandardProducts
@@ -208,7 +216,10 @@ export async function list(
       const orders = orderMap.size > 0 ? Array.from(orderMap.values()) : []
 
       // Sort orders by creation date (newest first)
-      orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      orders.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
 
       return {
         ...product,
@@ -283,7 +294,9 @@ export async function update(
   const orders = orderMap.size > 0 ? Array.from(orderMap.values()) : []
 
   // Sort orders by creation date (newest first)
-  orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  orders.sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  )
 
   res.send({
     ...updated,
@@ -346,7 +359,9 @@ export async function remove(
   const orders = orderMap.size > 0 ? Array.from(orderMap.values()) : []
 
   // Sort orders by creation date (newest first)
-  orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  orders.sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  )
 
   res.send({
     ...deleted,

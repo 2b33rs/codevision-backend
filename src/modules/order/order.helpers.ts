@@ -1,12 +1,8 @@
 import { prisma } from '../../plugins/prisma'
 import { Order, Position } from '../../../generated/prisma'
-import {
-  getInventoryCount,
-  requestFinishedGoods,
-} from '../../external/mawi.service'
+import { getInventoryCount } from '../../external/mawi.service'
 import { parseCMYKForMawi } from '../../utils/color.util'
 import { createProductionOrder } from '../production-order/production-order.service'
-import { InventoryStock } from '../../external/mawi.schema'
 
 export async function handlePositionInventoryAndProduction(
   order: Order,
@@ -41,7 +37,12 @@ export async function handlePositionInventoryAndProduction(
   const availableForPrint = Math.max(0, stockWithoutDesign.anzahl)
   if (availableForPrint > 0) {
     const toPrint = Math.min(remaining, availableForPrint)
-    await triggerPrintProduction(pos, toPrint, stockWithDesign.material_ID, orderType)
+    await triggerPrintProduction(
+      pos,
+      toPrint,
+      stockWithDesign.material_ID,
+      orderType,
+    )
     remaining -= toPrint
   }
 
@@ -59,7 +60,7 @@ export async function handlePositionInventoryAndProduction(
       pos,
       remaining,
       stockWithDesign.material_ID,
-      orderType
+      orderType,
     )
   }
 }

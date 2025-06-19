@@ -43,6 +43,7 @@ export async function getInventoryCount(
     farbe_json,
     typ: parsed.typ ?? 'V-Ausschnitt',
     standardmaterial: isStandardMaterial,
+    materialbezeichnung: parsed.name,
   }
 
   try {
