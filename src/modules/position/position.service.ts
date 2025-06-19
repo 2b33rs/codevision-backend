@@ -23,9 +23,10 @@ import PRODUCTION_ORDER_STATUS = $Enums.PRODUCTION_ORDER_STATUS
  * - Für Positionen: "orderNumber.pos_number"
  * - Für Fertigungsaufträge: "orderNumber.pos_number.productionorder_number"
  */
+
 export async function updatePositionStatusByBusinessKey(
   compositeId: string,
-  status: POSITION_STATUS | PRODUCTION_ORDER_STATUS,
+  status: POSITION_STATUS | PRODUCTION_ORDER_STATUS, // Status: READY_FOR_INSPECTION
 ): Promise<Position | import('../../../generated/prisma').ProductionOrder> {
   const parts = compositeId.split('.')
 
@@ -145,7 +146,7 @@ export async function createPosition(
 }
 
 /**
- * Batch‐Handler für “Finished Goods” Anforderungen.
+ * Batch‐Handler für "Finished Goods" Anforderungen.
  */
 export async function requestFinishedGoodsHandler(
   request: FastifyRequest,
@@ -184,10 +185,15 @@ export async function requestFinishedGoodsHandler(
           businessKey,
         )
 
+        await prisma.position.update({
+          where: { id: pos.id },
+          data: { Status: POSITION_STATUS.READY_FOR_INSPECTION },
+        })
+
         results.push({
           id: pos.id,
           message: res.status,
-          newStatus: POSITION_STATUS.OUTSOURCING_REQUESTED,
+          newStatus: POSITION_STATUS.READY_FOR_INSPECTION,
         })
       }
     } catch (error) {
