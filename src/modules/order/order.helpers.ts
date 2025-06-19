@@ -11,6 +11,7 @@ import { InventoryStock } from '../../external/mawi.schema'
 export async function handlePositionInventoryAndProduction(
   order: Order,
   pos: Position,
+  orderType: string = 'STANDARD',
 ) {
   const isStandardMaterial = pos.standardProductId != null
 
@@ -26,11 +27,7 @@ export async function handlePositionInventoryAndProduction(
   )
 
   let remaining = pos.amount - stockWithDesign.anzahl
-/* Erstmal Reservierung weglassen
-  if (stockWithDesign.anzahl > 0) {
-    await reserveFromStockWithDesign(order, pos, stockWithDesign, remaining)
-  }
-*/
+
   const stockWithoutDesign = await getInventoryCount(
     {
       color: pos.color,
@@ -44,7 +41,7 @@ export async function handlePositionInventoryAndProduction(
   const availableForPrint = Math.max(0, stockWithoutDesign.anzahl)
   if (availableForPrint > 0) {
     const toPrint = Math.min(remaining, availableForPrint)
-    await triggerPrintProduction(pos, toPrint, stockWithDesign.material_ID)
+    await triggerPrintProduction(pos, toPrint, stockWithDesign.material_ID, orderType)
     remaining -= toPrint
   }
 
@@ -62,29 +59,7 @@ export async function handlePositionInventoryAndProduction(
       pos,
       remaining,
       stockWithDesign.material_ID,
-    )
-  }
-}
-
-export async function reserveFromStockWithDesign(
-  order: Order,
-  pos: Position,
-  stock: InventoryStock,
-  remaining: number,
-) {
-  const toReserve = Math.min(stock.anzahl, pos.amount)
-  const businessKey = `${order.orderNumber}.${pos.pos_number}`
-
-  if (stock.material_ID) {
-    console.log(`🛒 Reserviere fertige Ware:`, {
-      material_ID: stock.material_ID,
-      toReserve,
-      businessKey,
-    })
-    await requestFinishedGoods(stock.material_ID, toReserve, businessKey)
-  } else {
-    console.warn(
-      `⚠️ Kein material_ID für Position ${pos.pos_number} (${order.orderNumber})`,
+      orderType
     )
   }
 }
@@ -93,6 +68,7 @@ export async function triggerPrintProduction(
   pos: Position,
   amount: number,
   materialId: number | null,
+  orderType: string = 'STANDARD',
 ) {
   if (amount <= 0) return
 
@@ -103,7 +79,7 @@ export async function triggerPrintProduction(
     positionId: pos.id,
     amount,
     designUrl: pos.design,
-    orderType: 'STANDARD',
+    orderType,
     dyeingNecessary: false,
     materialId: materialIdNumber,
     productTemplate: {
@@ -133,6 +109,7 @@ export async function triggerDyeAndPrintProduction(
   pos: Position,
   amount: number,
   materialId: number | null,
+  orderType: string = 'STANDARD',
 ) {
   console.log(`🎨 Produktionsauftrag FAERBEN_UND_BEDRUCKEN: Menge=${amount}`)
   // Ensure materialId is a number (default to 0 if null)
@@ -141,7 +118,7 @@ export async function triggerDyeAndPrintProduction(
     positionId: pos.id,
     amount,
     designUrl: pos.design,
-    orderType: 'STANDARD',
+    orderType,
     dyeingNecessary: true,
     materialId: materialIdNumber,
     productTemplate: {

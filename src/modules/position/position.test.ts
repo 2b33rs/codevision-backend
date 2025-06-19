@@ -227,7 +227,7 @@ describe('Position Routes', () => {
     expect(body.orderNumber).toBe(order.orderNumber)
     expect(body.results).toHaveLength(2)
     for (const result of body.results) {
-      expect(result.newStatus).toBe('OUTSOURCING_REQUESTED')
+      expect(result.newStatus).toBe('READY_FOR_INSPECTION')
       expect(result.id).toBeDefined()
     }
   })

@@ -2,6 +2,7 @@ import { prisma } from '../../plugins/prisma'
 import { randomUUID } from 'crypto'
 import { $Enums } from '../../../generated/prisma'
 import { updatePositionStatusByBusinessKey } from '../position/position.service'
+import { createOrderForComplaint } from '../order/order.service'
 
 type ComplaintReason = $Enums.ComplaintReason
 type ComplaintKind = $Enums.ComplaintKind
@@ -25,30 +26,24 @@ export async function createComplaint(input: {
 
   // === Neue Order erzeugen, wenn Flag aktiv ===
   if (input.createNewOrder) {
-    const newOrder = await prisma.order.create({
-      data: {
-        customerId: position.order.customerId!,
-        positions: {
-          create: [
-            {
-              pos_number: 1,
-              name: position.name,
-              amount: position.amount,
-              price: position.price,
-              productCategory: position.productCategory,
-              design: position.design,
-              color: position.color,
-              shirtSize: position.shirtSize,
-              description: position.description,
-              standardProductId: position.standardProductId,
-              typ: position.typ,
-            },
-          ],
-        },
+    // Verwende die createOrderForComplaint Funktion statt direkter DB-Erstellung
+    const newOrderResult = await createOrderForComplaint(
+      position.order.customerId,
+      {
+        name: position.name,
+        amount: position.amount,
+        price: position.price.toString(),
+        productCategory: position.productCategory,
+        design: position.design,
+        color: position.color || '',
+        shirtSize: position.shirtSize || '',
+        description: position.description || undefined,
+        standardProductId: position.standardProductId || undefined,
+        typ: position.typ,
       },
-    })
+    )
 
-    newOrderId = newOrder.id
+    newOrderId = newOrderResult.id
 
     // Status der Position aktualisieren, wenn der Beschwerdegrund nicht 'OTHER' ist
     if (input.ComplaintReason !== 'OTHER') {
