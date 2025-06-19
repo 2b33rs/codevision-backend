@@ -90,3 +90,34 @@ export async function sendProductionOrder(
     throw new Error(`Produktions-API-Fehler: ${status} ${statusText} - ${data}`)
   }
 }
+
+export async function deleteProductionOrder(
+  orderIdPositionsId: string,
+): Promise<void> {
+  if (process.env.VITEST === 'true') {
+    console.log('Skipping production API call (VITEST === true)')
+    return
+  }
+
+  console.log(`Deleting production order with ID: ${orderIdPositionsId}`)
+
+  try {
+    const response = await axios.patch(
+      `${PRODUCTION_API_URL}/fertigungsauftraege/${orderIdPositionsId}/loeschen`,
+      { headers: { 'Content-Type': 'application/json' } },
+    )
+
+    if (response.status < 200 || response.status >= 300) {
+      throw new Error(
+        `Produktions-API-Fehler: ${response.status} ${response.statusText} - ${JSON.stringify(response.data)}`,
+      )
+    }
+  } catch (error: any) {
+    const status = error.response?.status ?? 'unbekannt'
+    const statusText = error.response?.statusText ?? ''
+    const data = error.response?.data
+      ? JSON.stringify(error.response.data)
+      : error.message
+    throw new Error(`Produktions-API-Fehler: ${status} ${statusText} - ${data}`)
+  }
+}

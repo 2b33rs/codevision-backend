@@ -1,8 +1,9 @@
 import { prisma } from '../../plugins/prisma'
-import { randomUUID } from 'crypto'
 import { $Enums } from '../../../generated/prisma'
 import { updatePositionStatusByBusinessKey } from '../position/position.service'
 import { createOrderForComplaint } from '../order/order.service'
+import { getProductionOrdersByPositionId } from '../production-order/production-order.service'
+import { deleteProductionOrder } from '../../external/production.service'
 
 type ComplaintReason = $Enums.ComplaintReason
 type ComplaintKind = $Enums.ComplaintKind
@@ -16,7 +17,7 @@ export async function createComplaint(input: {
   // Position aus der Datenbank abrufen
   const position = await prisma.position.findUnique({
     where: { id: input.positionId },
-    include: { order: true },
+    include: { order: true, productionOrders: true },
   })
 
   if (!position) throw new Error('Position not found')
@@ -44,18 +45,21 @@ export async function createComplaint(input: {
     )
 
     newOrderId = newOrderResult.id
-
-    // Status der Position aktualisieren, wenn der Beschwerdegrund nicht 'OTHER' ist
-    if (input.ComplaintReason !== 'OTHER') {
-      await updatePositionStatusByBusinessKey(compositeId, 'IN_PROGRESS')
-    }
-  } else {
-    // Wenn keine neue Order gewünscht: Storno der Position
-    await updatePositionStatusByBusinessKey(compositeId, 'CANCELLED')
   }
 
+  await updatePositionStatusByBusinessKey(compositeId, 'CANCELLED')
+
+  // Get all production orders for this position and delete them
+  const productionOrders = position.productionOrders
+  for (const productionOrder of productionOrders) {
+    const orderIdPositionsId = `${position.order.orderNumber}.${position.pos_number}.${productionOrder.productionorder_number}`
+    await deleteProductionOrder(orderIdPositionsId)
+  }
+
+  //
+
   // === Beschwerde mit optionaler Verknüpfung zur neuen Order erstellen ===
-  const complaint = await prisma.complaint.create({
+  return prisma.complaint.create({
     data: {
       positionId: input.positionId,
       ComplaintReason: input.ComplaintReason,
@@ -75,6 +79,4 @@ export async function createComplaint(input: {
       },
     },
   })
-
-  return complaint
 }
