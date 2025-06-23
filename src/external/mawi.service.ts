@@ -7,6 +7,7 @@ import {
   RequestFinishedGoodsInput,
   RequestFinishedGoodsResponse,
 } from './mawi.schema'
+import { undefined } from 'zod'
 
 export async function getInventoryCount(
   parsed: GetInventoryCountInput,
@@ -38,7 +39,7 @@ export async function getInventoryCount(
 
   const body = {
     category: parsed.category,
-    aufdruck: parsed.design ?? null,
+    aufdruck: parsed.design === '' ? null : parsed.design ?? null,
     groesse: parsed.shirtSize ?? '',
     farbe_json,
     typ: parsed.typ ?? 'V-Ausschnitt',
@@ -63,7 +64,7 @@ export async function getInventoryCount(
         category: parsed.category,
         groesse: parsed.shirtSize ?? '',
         typ: parsed.typ ?? 'V-Ausschnitt',
-        url: data[0].url ?? '', // Assuming the API returns a URL
+        url: data[0].url ?? null, // Assuming the API returns a URL
         farbe: {
           black: data[0].farbe?.black ?? 0,
           cyan: data[0].farbe?.cyan ?? 0,
@@ -80,7 +81,6 @@ export async function getInventoryCount(
       category: parsed.category,
       groesse: parsed.shirtSize ?? '',
       typ: parsed.typ ?? 'V-Ausschnitt',
-      url: '', // Default URL if not found
       farbe: {
         black: 0,
         cyan: 0,
