@@ -187,13 +187,13 @@ export async function requestFinishedGoodsHandler(
 
         await prisma.position.update({
           where: { id: pos.id },
-          data: { Status: POSITION_STATUS.READY_FOR_INSPECTION },
+          data: { Status: POSITION_STATUS.OUTSOURCING_REQUESTED },
         })
 
         results.push({
           id: pos.id,
           message: res.status,
-          newStatus: POSITION_STATUS.READY_FOR_INSPECTION,
+          newStatus: POSITION_STATUS.OUTSOURCING_REQUESTED,
         })
       }
     } catch (error) {
